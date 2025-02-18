@@ -22,16 +22,27 @@ function extractVideoId(url: string): string | null {
  * Splits the group that contains the current playback time into two segments.
  * The left segment spans from the original start time to currentTime;
  * the right segment spans from currentTime to the original end time.
+ *
+ * **Modification:** If multiple groups span the current time (for example, a parent group
+ * and its child), we choose the one with the lowest layer (i.e. the bottom group) so that
+ * a new split appears on the bottom rather than splitting a parent overlay.
  */
 function splitGroupAtTime(
   groups: MusicalGroup[],
   currentTime: number
 ): MusicalGroup[] {
-  const index = groups.findIndex(
+  // Find all groups that include the current time.
+  const candidates = groups.filter(
     (g) => g.startTime <= currentTime && currentTime < g.endTime
   );
-  if (index === -1) return groups;
-  const target = groups[index];
+  if (candidates.length === 0) return groups;
+
+  // Choose the candidate with the lowest layer (i.e. bottom-most)
+  const target = candidates.reduce((prev, curr) =>
+    (prev.layer ?? 0) <= (curr.layer ?? 0) ? prev : curr
+  );
+
+  // If currentTime is not strictly inside the target, do nothing.
   if (currentTime <= target.startTime || currentTime >= target.endTime)
     return groups;
 
@@ -51,6 +62,7 @@ function splitGroupAtTime(
   };
 
   const newGroups = [...groups];
+  const index = newGroups.findIndex((g) => g.id === target.id);
   newGroups.splice(index, 1, leftPart, rightPart);
   newGroups.sort((a, b) => a.startTime - b.startTime);
   return newGroups;
@@ -58,15 +70,15 @@ function splitGroupAtTime(
 
 /**
  * Groups the selected groups into a new higher-order (overlay) group.
- * The new parent's boundaries are determined by the minimum start and
- * maximum end of the selected groups.
+ * The new parent's boundaries are determined by the minimum start and maximum end of
+ * the selected groups.
  *
- * Only hierarchical stacking is allowed. If there is an existing parent group
- * (a group with children) that starts or ends within the selected span,
- * an error is shown and grouping is prevented.
+ * Only hierarchical stacking is allowed. If there is an existing parent group (a group
+ * with children) that starts or ends within the selected span, an error is shown and
+ * grouping is prevented.
  *
- * Otherwise, the new overlay group is created with a layer one higher than
- * the highest layer among the selected groups.
+ * Otherwise, the new overlay group is created with a layer one higher than the highest
+ * layer among the selected groups.
  */
 function groupSelectedGroups(
   groups: MusicalGroup[],
