@@ -45,7 +45,7 @@ function splitGroupAtTime(
   const leftPart: MusicalGroup = {
     ...target,
     endTime: currentTime,
-    text: target.text + " (left)",
+    text: target.text,
     layer: target.layer ?? 0,
   };
 
@@ -53,7 +53,7 @@ function splitGroupAtTime(
     ...target,
     id: Date.now().toString() + Math.random().toString(36).substring(2),
     startTime: currentTime,
-    text: target.text + " (right)",
+    text: target.text,
     layer: target.layer ?? 0,
   };
 
@@ -143,7 +143,7 @@ function groupSelectedGroups(
       endTime: maxEnd,
       shape: "rectangle",
       color: "#4CAF50",
-      text: "Grouped",
+      text: "",
       children: selectedGroups,
       layer: candidate.layer, // new group takes candidate's current layer
     };
@@ -165,7 +165,7 @@ function groupSelectedGroups(
     endTime: maxEnd,
     shape: "rectangle",
     color: "#4CAF50",
-    text: "Grouped",
+    text: "",
     children: selectedGroups,
     layer: maxSelectedLayer + 1,
   };
@@ -208,7 +208,7 @@ const Home = () => {
         endTime: videoDuration,
         shape: "rectangle",
         color: "#FF5733",
-        text: "Entire Video",
+        text: "",
         children: [],
         layer: 0,
       };
@@ -243,6 +243,70 @@ const Home = () => {
     setSelectedGroupIds((prev) =>
       prev.includes(id) ? prev.filter((gid) => gid !== id) : [...prev, id]
     );
+  };
+
+  // Deletes the selected group (only if exactly one group is selected).
+  // Returns the group object with the specified id.
+  const groupFromGroupId = (id: string): MusicalGroup | undefined => {
+    return groups.find((g) => g.id === id);
+  };
+
+  // Deletes the selected group and expands an adjacent group to fill its space.
+  const handleDeleteGroup = () => {
+    if (selectedGroupIds.length !== 1) return;
+
+    const idToDelete = selectedGroupIds[0];
+    const groupToDelete = groups.find((g) => g.id === idToDelete);
+    if (!groupToDelete) return;
+
+    const layer = groupToDelete.layer ?? 0;
+    // Find all groups on the same layer (excluding the one to delete)
+    const sameLayerGroups = groups.filter(
+      (g) => (g.layer ?? 0) === layer && g.id !== idToDelete
+    );
+
+    // Find left neighbor: group whose endTime is less than or equal to the deleted group's startTime
+    const leftNeighbor = sameLayerGroups
+      .filter((g) => g.endTime <= groupToDelete.startTime)
+      .sort((a, b) => b.endTime - a.endTime)[0];
+
+    // If no left neighbor, find right neighbor: group whose startTime is greater than or equal to the deleted group's endTime
+    const rightNeighbor = sameLayerGroups
+      .filter((g) => g.startTime >= groupToDelete.endTime)
+      .sort((a, b) => a.startTime - b.startTime)[0];
+
+    // Remove the deleted group from the flat array.
+    let newGroups = groups.filter((g) => g.id !== idToDelete);
+
+    // Expand an adjacent group to fill the gap.
+    if (leftNeighbor) {
+      // Extend the left neighbor's endTime to fill the gap.
+      newGroups = newGroups.map((g) =>
+        g.id === leftNeighbor.id ? { ...g, endTime: groupToDelete.endTime } : g
+      );
+    } else if (rightNeighbor) {
+      // Otherwise, if the deleted group was the left-most, shift the right neighbor's startTime.
+      newGroups = newGroups.map((g) =>
+        g.id === rightNeighbor.id
+          ? { ...g, startTime: groupToDelete.startTime }
+          : g
+      );
+    }
+
+    // Remove any references to the deleted group in parent's children arrays.
+    newGroups = newGroups.map((g) => {
+      if (g.children) {
+        return {
+          ...g,
+          children: g.children.filter((child) => child.id !== idToDelete),
+        };
+      }
+      return g;
+    });
+
+    // Update state.
+    setGroups(newGroups);
+    setSelectedGroupIds([]);
   };
 
   const handleSplitGroup = () => {
@@ -300,8 +364,12 @@ const Home = () => {
             <Button variant="outline" className="w-full">
               Theme
             </Button>
-            <Button variant="outline" className="w-full">
-              Form Analysis
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleDeleteGroup}
+            >
+              Delete Group
             </Button>
             <Button
               variant="outline"
