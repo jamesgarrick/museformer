@@ -9,20 +9,22 @@ interface MusicalGroupComponentProps {
   onClick?: (id: string) => void;
 }
 
+const LAYER_HEIGHT = 30; // Height in pixels for each layer
+
 const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
   group,
   totalDuration,
   selected = false,
   onClick,
 }) => {
-  // Compute the left offset and width as percentages of the total timeline
+  // Compute horizontal positioning
   const leftPercent = (group.startTime / totalDuration) * 100;
   const widthPercent =
     ((group.endTime - group.startTime) / totalDuration) * 100;
 
-  // Compute the vertical offset based on the group's level.
-  // For example, level = 0 => top: 0; level = -1 => top: -20px; level = 1 => top: 20px.
-  const verticalOffset = (group.level !== undefined ? group.level : 0) * 20;
+  // Compute vertical positioning directly from the group's layer value
+  const bottom = (group.layer ?? 0) * LAYER_HEIGHT;
+  const height = LAYER_HEIGHT;
 
   return (
     <div
@@ -30,17 +32,15 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
       style={{
         left: `${leftPercent}%`,
         width: `${widthPercent}%`,
-        top: `${verticalOffset}px`,
+        bottom: `${bottom}px`,
+        height: `${height}px`,
         borderColor: "black",
-        // The background remains transparent so only the borders are visible.
-        backgroundColor: "transparent",
+        backgroundColor: "transparent", // Only the border is visible
       }}
       title={group.text}
       onClick={(e) => {
         e.stopPropagation();
-        if (onClick) {
-          onClick(group.id);
-        }
+        if (onClick) onClick(group.id);
       }}
     >
       <span className="text-sm relative z-10">{group.text}</span>

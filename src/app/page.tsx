@@ -6,10 +6,8 @@ import YouTube, { YouTubeProps } from "react-youtube";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-// Import our MusicalGroupComponent (which now accepts a 'level' prop to adjust vertical position)
+// Import our MusicalGroupComponent and MusicalGroup interface.
 import MusicalGroupComponent from "@/components/ui/MusicalGroupComponent";
-
-// Import the MusicalGroup interface (which now includes an optional level property)
 import { MusicalGroup } from "@/interfaces/MusicalGroup";
 
 // Helper function to extract the videoId from a YouTube URL.
@@ -41,8 +39,7 @@ function splitGroupAtTime(
     ...target,
     endTime: currentTime,
     text: target.text + " (left)",
-    // Retain the same level as the original.
-    level: target.level ?? 0,
+    layer: target.layer ?? 0,
   };
 
   const rightPart: MusicalGroup = {
@@ -50,7 +47,7 @@ function splitGroupAtTime(
     id: Date.now().toString() + Math.random().toString(36).substring(2),
     startTime: currentTime,
     text: target.text + " (right)",
-    level: target.level ?? 0,
+    layer: target.layer ?? 0,
   };
 
   const newGroups = [...groups];
@@ -60,23 +57,30 @@ function splitGroupAtTime(
 }
 
 /**
- * Groups the selected groups into a new higher-level group.
- * The new parent's start is the minimum start and its end is the maximum end
- * among the selected groups. The selected groups become its children.
- * Its vertical level is set to one less than the minimum level among the selected groups,
- * so that it is rendered higher vertically.
+ * Groups the selected groups into a new higher-order (overlay) group.
+ * The new parent's boundaries are determined by the minimum start and
+ * maximum end of the selected groups.
+ *
+ * Instead of bumping all existing groups' layers, we leave them intact.
+ * The new group gets a layer equal to one more than the highest layer among
+ * the selected groups.
  */
 function groupSelectedGroups(
   groups: MusicalGroup[],
   selectedIds: string[]
 ): MusicalGroup[] {
   if (selectedIds.length === 0) return groups;
+
   const selectedGroups = groups.filter((g) => selectedIds.includes(g.id));
   if (selectedGroups.length === 0) return groups;
 
   const minStart = Math.min(...selectedGroups.map((g) => g.startTime));
   const maxEnd = Math.max(...selectedGroups.map((g) => g.endTime));
-  const minLevel = Math.min(...selectedGroups.map((g) => g.level ?? 0));
+
+  // Determine the highest layer among the selected groups
+  const maxSelectedLayer = Math.max(...selectedGroups.map((g) => g.layer ?? 0));
+
+  // Create the new overlay group with a layer one higher than the highest selected
   const newParent: MusicalGroup = {
     id: Date.now().toString() + Math.random().toString(36).substring(2),
     startTime: minStart,
@@ -85,14 +89,11 @@ function groupSelectedGroups(
     color: "#4CAF50",
     text: "Grouped",
     children: selectedGroups,
-    level: minLevel - 1, // New parent appears above (vertically) its children.
+    layer: maxSelectedLayer + 1, // New group appears above the selected groups
   };
 
-  // Remove the selected groups from the top level.
-  const remaining = groups.filter((g) => !selectedIds.includes(g.id));
-  const newGroups = [...remaining, newParent];
-  newGroups.sort((a, b) => a.startTime - b.startTime);
-  return newGroups;
+  // Leave other groups untouched.
+  return [...groups, newParent].sort((a, b) => a.startTime - b.startTime);
 }
 
 const Home = () => {
@@ -107,7 +108,6 @@ const Home = () => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Handle URL submission.
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const id = extractVideoId(youtubeUrl);
@@ -118,7 +118,6 @@ const Home = () => {
     }
   };
 
-  // When the YouTube player is ready, set up the player and the initial parent group.
   const onPlayerReady: YouTubeProps["onReady"] = (event) => {
     const ytPlayer = event.target;
     setPlayer(ytPlayer);
@@ -126,6 +125,7 @@ const Home = () => {
     setDuration(videoDuration);
 
     if (groups.length === 0) {
+      // Create the initial parent group spanning the entire video at layer 0.
       const parentGroup: MusicalGroup = {
         id: "parent-group",
         startTime: 0,
@@ -134,7 +134,7 @@ const Home = () => {
         color: "#FF5733",
         text: "Entire Video",
         children: [],
-        level: 0,
+        layer: 0,
       };
       setGroups([parentGroup]);
     }
@@ -152,7 +152,6 @@ const Home = () => {
     };
   }, []);
 
-  // Seek the video when clicking on the timeline.
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!timelineRef.current || !player || duration === 0) return;
     const rect = timelineRef.current.getBoundingClientRect();
@@ -164,71 +163,113 @@ const Home = () => {
 
   const progressWidth = duration ? (currentTime / duration) * 100 : 0;
 
-  // Toggle selection for a group.
   const toggleGroupSelection = (id: string) => {
     setSelectedGroupIds((prev) =>
       prev.includes(id) ? prev.filter((gid) => gid !== id) : [...prev, id]
     );
   };
 
-  // Split the group that contains the current time.
   const handleSplitGroup = () => {
     if (!player || duration === 0) return;
     const newGroups = splitGroupAtTime(groups, currentTime);
     setGroups(newGroups);
   };
 
-  // Group the selected groups into a new higher-level group.
   const handleGroupSelected = () => {
     if (selectedGroupIds.length === 0) return;
     const newGroups = groupSelectedGroups(groups, selectedGroupIds);
     setGroups(newGroups);
     setSelectedGroupIds([]);
-    console.log(groups);
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gray-100 p-4 border-r border-gray-300">
-        <h2 className="text-xl font-bold mb-4">Tools</h2>
-        <div className="space-y-2">
-          <Button variant="outline" className="w-full">
-            Text Analysis
-          </Button>
-          <Button variant="outline" className="w-full">
-            Color Picker
-          </Button>
-          <Button variant="outline" className="w-full">
-            Motif Grouping
-          </Button>
-          <Button variant="outline" className="w-full">
-            Theme
-          </Button>
-          <Button variant="outline" className="w-full">
-            Form Analysis
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full mt-4"
-            onClick={handleSplitGroup}
-            disabled={!videoId}
-          >
-            Split Group
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full mt-2"
-            onClick={handleGroupSelected}
-            disabled={!videoId || selectedGroupIds.length === 0}
-          >
-            Group Selected
-          </Button>
+    <div className="min-h-screen flex flex-col">
+      {/* Main content area */}
+      <div className="flex flex-grow">
+        {/* Sidebar */}
+        <aside className="w-64 bg-gray-100 p-4 border-r border-gray-300">
+          <h2 className="text-xl font-bold mb-4">Tools</h2>
+          <div className="space-y-2">
+            <Button variant="outline" className="w-full">
+              Text Analysis
+            </Button>
+            <Button variant="outline" className="w-full">
+              Color Picker
+            </Button>
+            <Button variant="outline" className="w-full">
+              Motif Grouping
+            </Button>
+            <Button variant="outline" className="w-full">
+              Theme
+            </Button>
+            <Button variant="outline" className="w-full">
+              Form Analysis
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full mt-4"
+              onClick={handleSplitGroup}
+              disabled={!videoId}
+            >
+              Split Group
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full mt-2"
+              onClick={handleGroupSelected}
+              disabled={!videoId || selectedGroupIds.length === 0}
+            >
+              Group Selected
+            </Button>
+          </div>
+        </aside>
+        {/* Timeline/Analysis Container */}
+        <div className="flex-grow flex flex-col justify-center items-center min-h-60">
+          <div className="relative w-full max-w-4xl">
+            {/* Analysis Container: This container is now positioned so that its bottom edge aligns with the timeline.
+                The MusicalGroupComponents are absolutely positioned using their "layer" value.
+            */}
+            <div className="relative w-full h-12 bg-gray-200 mb-2">
+              {groups.map((group) => (
+                <MusicalGroupComponent
+                  key={group.id}
+                  group={group}
+                  totalDuration={duration}
+                  selected={selectedGroupIds.includes(group.id)}
+                  onClick={toggleGroupSelection}
+                />
+              ))}
+            </div>
+            {/* Timeline Bar */}
+            <div
+              ref={timelineRef}
+              className="w-full h-4 bg-gray-300 relative cursor-pointer mb-2"
+              onClick={handleTimelineClick}
+            >
+              <div
+                className="h-full bg-blue-500"
+                style={{ width: `${progressWidth}%` }}
+              />
+            </div>
+          </div>
         </div>
-      </aside>
-      {/* Main Content */}
-      <main className="flex-grow p-4">
-        {!videoId ? (
+      </div>
+      {/* Video Container: occupies bottom 30% of the viewport */}
+      <div className="h-[30vh] p-4">
+        <div className="flex justify-center">
+          {videoId && (
+            <YouTube
+              videoId={videoId}
+              opts={{
+                width: "640",
+                height: "360",
+                playerVars: { autoplay: 0 },
+              }}
+              onReady={onPlayerReady}
+            />
+          )}
+        </div>
+        {!videoId && (
           <form
             onSubmit={handleSubmit}
             className="w-full max-w-md space-y-4 mx-auto"
@@ -244,49 +285,8 @@ const Home = () => {
               Load Video
             </Button>
           </form>
-        ) : (
-          <div className="w-full relative">
-            {/* Analysis Container: Render all groups above the timeline.
-                The MusicalGroupComponent should use the group.level prop to apply a vertical offset.
-            */}
-            <div className="relative w-full h-20 bg-gray-200 mb-2">
-              {groups.map((group) => (
-                <MusicalGroupComponent
-                  key={group.id}
-                  group={group}
-                  totalDuration={duration}
-                  // Pass selection info and handler.
-                  selected={selectedGroupIds.includes(group.id)}
-                  onClick={toggleGroupSelection}
-                />
-              ))}
-            </div>
-            {/* Timeline Bar */}
-            <div
-              ref={timelineRef}
-              className="w-full h-4 bg-gray-300 relative cursor-pointer mb-4"
-              onClick={handleTimelineClick}
-            >
-              <div
-                className="h-full bg-blue-500"
-                style={{ width: `${progressWidth}%` }}
-              />
-            </div>
-            {/* Embedded YouTube Video */}
-            <div className="flex justify-center">
-              <YouTube
-                videoId={videoId}
-                opts={{
-                  width: "640",
-                  height: "360",
-                  playerVars: { autoplay: 0 },
-                }}
-                onReady={onPlayerReady}
-              />
-            </div>
-          </div>
         )}
-      </main>
+      </div>
     </div>
   );
 };
