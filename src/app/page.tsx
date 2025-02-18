@@ -23,26 +23,22 @@ function extractVideoId(url: string): string | null {
  * The left segment spans from the original start time to currentTime;
  * the right segment spans from currentTime to the original end time.
  *
- * **Modification:** If multiple groups span the current time (for example, a parent group
- * and its child), we choose the one with the lowest layer (i.e. the bottom group) so that
- * a new split appears on the bottom rather than splitting a parent overlay.
+ * Modification: If the target group is referenced in any parent’s children array,
+ * update that array to replace the target with the two new split parts.
  */
 function splitGroupAtTime(
   groups: MusicalGroup[],
   currentTime: number
 ): MusicalGroup[] {
-  // Find all groups that include the current time.
   const candidates = groups.filter(
     (g) => g.startTime <= currentTime && currentTime < g.endTime
   );
   if (candidates.length === 0) return groups;
 
-  // Choose the candidate with the lowest layer (i.e. bottom-most)
   const target = candidates.reduce((prev, curr) =>
     (prev.layer ?? 0) <= (curr.layer ?? 0) ? prev : curr
   );
 
-  // If currentTime is not strictly inside the target, do nothing.
   if (currentTime <= target.startTime || currentTime >= target.endTime)
     return groups;
 
@@ -65,58 +61,105 @@ function splitGroupAtTime(
   const index = newGroups.findIndex((g) => g.id === target.id);
   newGroups.splice(index, 1, leftPart, rightPart);
   newGroups.sort((a, b) => a.startTime - b.startTime);
+
+  newGroups.forEach((grp) => {
+    if (grp.children) {
+      grp.children = grp.children.flatMap((child) =>
+        child.id === target.id ? [leftPart, rightPart] : [child]
+      );
+    }
+  });
+
   return newGroups;
 }
 
 /**
  * Groups the selected groups into a new higher-order (overlay) group.
- * The new parent's boundaries are determined by the minimum start and maximum end of
- * the selected groups.
  *
- * Only hierarchical stacking is allowed. If there is an existing parent group (a group
- * with children) that starts or ends within the selected span, an error is shown and
- * grouping is prevented.
+ * New behavior:
+ * 1. We search for candidate parent groups (those with children) that completely
+ *    enclose the selected groups (i.e. whose children include all selected groups).
+ * 2. For each candidate parent, we compute its effective boundaries by taking the
+ *    minimum start and maximum end among its children. If either the effective start equals
+ *    the selected minimum or the effective end equals the selected maximum, then the selection
+ *    touches the parent's boundary. In that case, we trigger an error:
  *
- * Otherwise, the new overlay group is created with a layer one higher than the highest
- * layer among the selected groups.
+ *       "There is a parent group that starts or ends during the selected span - Boundaries cannot overlap like that (2)"
+ *
+ * 3. Otherwise, if a candidate parent exists, we perform hierarchical replacement:
+ *    - Create a new group (with boundaries from the selected groups) that takes the candidate's layer.
+ *    - Remove the selected groups from the candidate’s children and insert the new group.
+ *    - Bump the candidate parent's layer by 1 so it remains above.
+ *
+ * 4. If no candidate parent is found, perform normal grouping by assigning the new group a layer
+ *    one more than the highest layer among the selected groups.
+ *
+ * We continue using a flat array of groups (with an optional `children` array) for positioning.
  */
 function groupSelectedGroups(
   groups: MusicalGroup[],
   selectedIds: string[]
 ): MusicalGroup[] {
   if (selectedIds.length === 0) return groups;
-
   const selectedGroups = groups.filter((g) => selectedIds.includes(g.id));
   if (selectedGroups.length === 0) return groups;
 
   const minStart = Math.min(...selectedGroups.map((g) => g.startTime));
   const maxEnd = Math.max(...selectedGroups.map((g) => g.endTime));
 
-  // Check for any existing parent group that overlaps boundaries within the selected span.
-  const overlappingParent = groups.find((g) => {
-    // Skip groups that are being grouped.
-    if (selectedIds.includes(g.id)) return false;
-    // Only consider parent groups (with children).
+  // Find candidate parent groups whose children include all selected groups.
+  const candidateParents = groups.filter((g) => {
     if (!g.children || g.children.length === 0) return false;
-    // If the parent group's boundaries start or end inside the new span, that's not allowed.
-    return (
-      (g.startTime > minStart && g.startTime < maxEnd) ||
-      (g.endTime > minStart && g.endTime < maxEnd)
-    );
+    const childIds = g.children.map((child) => child.id);
+    return selectedGroups.every((sg) => childIds.includes(sg.id));
   });
 
-  if (overlappingParent) {
-    alert(
-      "There is a parent group that starts or ends during the selected span - Boundaries cannot overlap like that (2)"
+  // For each candidate, compute its effective boundaries.
+  for (const parent of candidateParents) {
+    const effectiveStart = Math.min(
+      ...parent.children!.map((child) => child.startTime)
     );
-    return groups;
+    const effectiveEnd = Math.max(
+      ...parent.children!.map((child) => child.endTime)
+    );
+    if (effectiveStart === minStart || effectiveEnd === maxEnd) {
+      alert(
+        "There is a parent group that starts or ends during the selected span - Boundaries cannot overlap like that (2)"
+      );
+      return groups;
+    }
   }
 
-  // Determine the highest layer among the selected groups.
-  const maxSelectedLayer = Math.max(...selectedGroups.map((g) => g.layer ?? 0));
+  if (candidateParents.length > 0) {
+    candidateParents.sort(
+      (a, b) => a.endTime - a.startTime - (b.endTime - b.startTime)
+    );
+    const candidate = candidateParents[0];
 
-  // Create the new overlay group with a layer one higher than the highest selected group.
-  const newParent: MusicalGroup = {
+    // Hierarchical replacement:
+    const newGroup: MusicalGroup = {
+      id: Date.now().toString() + Math.random().toString(36).substring(2),
+      startTime: minStart,
+      endTime: maxEnd,
+      shape: "rectangle",
+      color: "#4CAF50",
+      text: "Grouped",
+      children: selectedGroups,
+      layer: candidate.layer, // new group takes candidate's current layer
+    };
+
+    candidate.children = candidate.children!.filter(
+      (child) => !selectedIds.includes(child.id)
+    );
+    candidate.children.push(newGroup);
+    candidate.layer = (candidate.layer ?? 0) + 1;
+
+    return [...groups, newGroup].sort((a, b) => a.startTime - b.startTime);
+  }
+
+  // Otherwise, perform normal grouping.
+  const maxSelectedLayer = Math.max(...selectedGroups.map((g) => g.layer ?? 0));
+  const newGroup: MusicalGroup = {
     id: Date.now().toString() + Math.random().toString(36).substring(2),
     startTime: minStart,
     endTime: maxEnd,
@@ -127,7 +170,7 @@ function groupSelectedGroups(
     layer: maxSelectedLayer + 1,
   };
 
-  return [...groups, newParent].sort((a, b) => a.startTime - b.startTime);
+  return [...groups, newGroup].sort((a, b) => a.startTime - b.startTime);
 }
 
 const Home = () => {
@@ -159,7 +202,6 @@ const Home = () => {
     setDuration(videoDuration);
 
     if (groups.length === 0) {
-      // Create the initial parent group spanning the entire video at layer 0.
       const parentGroup: MusicalGroup = {
         id: "parent-group",
         startTime: 0,
@@ -216,6 +258,28 @@ const Home = () => {
     setSelectedGroupIds([]);
   };
 
+  // Register keybinds: 's' for split and 'g' for group selected.
+  useEffect(() => {
+    const keyHandler = (e: KeyboardEvent) => {
+      const active = document.activeElement as HTMLElement;
+      if (
+        active &&
+        (active.tagName === "INPUT" || active.tagName === "TEXTAREA")
+      ) {
+        return;
+      }
+      if (e.key === "s" || e.key === "S") {
+        handleSplitGroup();
+      } else if (e.key === "g" || e.key === "G") {
+        handleGroupSelected();
+      }
+    };
+    document.addEventListener("keydown", keyHandler);
+    return () => {
+      document.removeEventListener("keydown", keyHandler);
+    };
+  }, [groups, selectedGroupIds, currentTime, duration]);
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Main content area */}
@@ -245,7 +309,7 @@ const Home = () => {
               onClick={handleSplitGroup}
               disabled={!videoId}
             >
-              Split Group
+              Split Group (S)
             </Button>
             <Button
               variant="outline"
@@ -253,14 +317,13 @@ const Home = () => {
               onClick={handleGroupSelected}
               disabled={!videoId || selectedGroupIds.length === 0}
             >
-              Group Selected
+              Group Selected (G)
             </Button>
           </div>
         </aside>
         {/* Timeline/Analysis Container */}
         <div className="flex-grow flex flex-col justify-center items-center min-h-60">
           <div className="relative w-full max-w-4xl">
-            {/* Analysis Container */}
             <div className="relative w-full h-12 bg-gray-200 mb-2">
               {groups.map((group) => (
                 <MusicalGroupComponent
@@ -272,7 +335,6 @@ const Home = () => {
                 />
               ))}
             </div>
-            {/* Timeline Bar */}
             <div
               ref={timelineRef}
               className="w-full h-4 bg-gray-300 relative cursor-pointer mb-2"
@@ -286,7 +348,7 @@ const Home = () => {
           </div>
         </div>
       </div>
-      {/* Video Container: occupies bottom 30% of the viewport */}
+      {/* Video Container */}
       <div className="h-[30vh] p-4">
         <div className="flex justify-center">
           {videoId && (
