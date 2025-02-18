@@ -61,9 +61,12 @@ function splitGroupAtTime(
  * The new parent's boundaries are determined by the minimum start and
  * maximum end of the selected groups.
  *
- * Instead of bumping all existing groups' layers, we leave them intact.
- * The new group gets a layer equal to one more than the highest layer among
- * the selected groups.
+ * Only hierarchical stacking is allowed. If there is an existing parent group
+ * (a group with children) that starts or ends within the selected span,
+ * an error is shown and grouping is prevented.
+ *
+ * Otherwise, the new overlay group is created with a layer one higher than
+ * the highest layer among the selected groups.
  */
 function groupSelectedGroups(
   groups: MusicalGroup[],
@@ -77,10 +80,30 @@ function groupSelectedGroups(
   const minStart = Math.min(...selectedGroups.map((g) => g.startTime));
   const maxEnd = Math.max(...selectedGroups.map((g) => g.endTime));
 
-  // Determine the highest layer among the selected groups
+  // Check for any existing parent group that overlaps boundaries within the selected span.
+  const overlappingParent = groups.find((g) => {
+    // Skip groups that are being grouped.
+    if (selectedIds.includes(g.id)) return false;
+    // Only consider parent groups (with children).
+    if (!g.children || g.children.length === 0) return false;
+    // If the parent group's boundaries start or end inside the new span, that's not allowed.
+    return (
+      (g.startTime > minStart && g.startTime < maxEnd) ||
+      (g.endTime > minStart && g.endTime < maxEnd)
+    );
+  });
+
+  if (overlappingParent) {
+    alert(
+      "There is a parent group that starts or ends during the selected span - Boundaries cannot overlap like that (2)"
+    );
+    return groups;
+  }
+
+  // Determine the highest layer among the selected groups.
   const maxSelectedLayer = Math.max(...selectedGroups.map((g) => g.layer ?? 0));
 
-  // Create the new overlay group with a layer one higher than the highest selected
+  // Create the new overlay group with a layer one higher than the highest selected group.
   const newParent: MusicalGroup = {
     id: Date.now().toString() + Math.random().toString(36).substring(2),
     startTime: minStart,
@@ -89,10 +112,9 @@ function groupSelectedGroups(
     color: "#4CAF50",
     text: "Grouped",
     children: selectedGroups,
-    layer: maxSelectedLayer + 1, // New group appears above the selected groups
+    layer: maxSelectedLayer + 1,
   };
 
-  // Leave other groups untouched.
   return [...groups, newParent].sort((a, b) => a.startTime - b.startTime);
 }
 
@@ -226,9 +248,7 @@ const Home = () => {
         {/* Timeline/Analysis Container */}
         <div className="flex-grow flex flex-col justify-center items-center min-h-60">
           <div className="relative w-full max-w-4xl">
-            {/* Analysis Container: This container is now positioned so that its bottom edge aligns with the timeline.
-                The MusicalGroupComponents are absolutely positioned using their "layer" value.
-            */}
+            {/* Analysis Container */}
             <div className="relative w-full h-12 bg-gray-200 mb-2">
               {groups.map((group) => (
                 <MusicalGroupComponent
