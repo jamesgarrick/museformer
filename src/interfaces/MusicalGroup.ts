@@ -4,7 +4,17 @@ export interface MusicalGroup {
   endTime: number; // End time in seconds
   shape: "rectangle" | "circle" | "line" | string; // Visual shape (extendable)
   color: string; // Color for the group (e.g. hex code)
-  text: string; // Single-line markdown text (for now plain text)
+  texts: {
+    topLeft: string;
+    topMiddle: string;
+    topRight: string;
+    middleLeft: string;
+    middleMiddle: string;
+    middleRight: string;
+    bottomLeft: string;
+    bottomMiddle: string;
+    bottomRight: string;
+  };
   children?: MusicalGroup[]; // Nested child groups
   layer?: number;
 }
