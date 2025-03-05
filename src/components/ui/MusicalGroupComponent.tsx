@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { MusicalGroup } from "@/interfaces/MusicalGroup";
 
 interface MusicalGroupComponentProps {
@@ -27,32 +27,62 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
   const leftPercent = (group.startTime / totalDuration) * 100;
   const widthPercent =
     ((group.endTime - group.startTime) / totalDuration) * 100;
-  // Compute vertical positioning directly from the group's layer value
+  // Compute vertical positioning from the group's layer value
   const bottom = (group.layer ?? 0) * LAYER_HEIGHT;
   const height = LAYER_HEIGHT;
 
-  // Local state to track which text field (if any) is being edited
+  // Local state for which text field is being edited
   const [editingField, setEditingField] = useState<
     keyof MusicalGroup["texts"] | null
   >(null);
   const [editingValue, setEditingValue] = useState("");
 
-  // When a text element is double-clicked, switch to editing mode
-  const handleDoubleClick = (
+  // Ref to help distinguish between single and double tap
+  const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Single tap handler on a text cell
+  const handleTextClick = (
     position: keyof MusicalGroup["texts"],
     e: React.MouseEvent
   ) => {
+    // Prevent outer container click from also firing
     e.stopPropagation();
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+    }
+    // Delay the single-tap action to check for double tap
+    clickTimeoutRef.current = setTimeout(() => {
+      if (onClick) onClick(group.id);
+      clickTimeoutRef.current = null;
+    }, 50);
+  };
+
+  // Double tap handler on a text cell
+  const handleTextDoubleClick = (
+    position: keyof MusicalGroup["texts"],
+    e: React.MouseEvent
+  ) => {
+    // Cancel pending single-tap action
+    e.stopPropagation();
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+      clickTimeoutRef.current = null;
+    }
+    // If group is selected, deselect it
+    if (selected && onClick) {
+      onClick(group.id);
+    }
+    // Then immediately enter text edit mode
     setEditingField(position);
     setEditingValue(group.texts[position]);
   };
 
-  // Update the editing value on change
+  // Update text on change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEditingValue(e.target.value);
   };
 
-  // Commit the changes and exit editing mode (on blur or Enter key)
+  // Commit changes on blur or Enter key
   const finishEditing = () => {
     if (editingField && onTextChange) {
       onTextChange(group.id, editingField, editingValue);
@@ -66,7 +96,7 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     }
   };
 
-  // CSS grid container for text fields
+  // Grid container for text fields
   const gridContainerStyle: React.CSSProperties = {
     display: "grid",
     gridTemplateAreas: `
@@ -80,7 +110,7 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     height: "100%",
   };
 
-  // Determine text alignment based on the key name
+  // Determine text alignment based on the position key
   const getTextAlign = (position: string): "left" | "center" | "right" => {
     if (position.endsWith("Left")) return "left";
     if (position.endsWith("Right")) return "right";
@@ -99,6 +129,7 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
         backgroundColor: "transparent",
       }}
       title={Object.values(group.texts).join(" | ")}
+      // Outer container click selects the group (when clicking outside text cells)
       onClick={(e) => {
         e.stopPropagation();
         if (onClick) onClick(group.id);
@@ -107,10 +138,11 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
       <div style={gridContainerStyle}>
         {Object.keys(group.texts).map((positionKey) => {
           const position = positionKey as keyof MusicalGroup["texts"];
-          const style: React.CSSProperties = {
+          const textAlign = getTextAlign(position);
+          const cellStyle: React.CSSProperties = {
             gridArea: position,
-            textAlign: getTextAlign(position),
-            cursor: "text",
+            textAlign,
+            cursor: editingField === position ? "text" : "pointer",
             userSelect: "none",
             padding: "2px",
           };
@@ -118,9 +150,9 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
           return (
             <div
               key={position}
-              style={style}
-              onClick={(e) => e.stopPropagation()}
-              onDoubleClick={(e) => handleDoubleClick(position, e)}
+              style={cellStyle}
+              onClick={(e) => handleTextClick(position, e)}
+              onDoubleClick={(e) => handleTextDoubleClick(position, e)}
             >
               {editingField === position ? (
                 <input
@@ -130,7 +162,16 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
                   onBlur={finishEditing}
                   onKeyDown={handleKeyDown}
                   autoFocus
-                  style={{ width: "100%", fontSize: "0.875rem" }}
+                  style={{
+                    width: "100%",
+                    fontSize: "0.875rem",
+                    border: "none",
+                    outline: "none",
+                    padding: 0,
+                    margin: 0,
+                    background: "transparent",
+                    textAlign,
+                  }}
                 />
               ) : (
                 <span style={{ fontSize: "0.875rem" }}>
@@ -142,7 +183,10 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
         })}
       </div>
       {selected && (
-        <div className="absolute inset-0 bg-blue-300 opacity-50 pointer-events-none"></div>
+        <div
+          className="absolute inset-0 bg-blue-300 pointer-events-none"
+          style={{ opacity: 0.15 }}
+        ></div>
       )}
     </div>
   );
