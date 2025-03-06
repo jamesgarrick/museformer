@@ -488,9 +488,15 @@ const Home = () => {
                 opts={{
                   width: "100%",
                   height: "100%",
-                  playerVars: { autoplay: 0 },
+                  playerVars: {
+                    autoplay: 0,
+                    controls: 0,
+                    rel: 0,
+                    iv_load_policy: 3,
+                    fs: 0,
+                  },
                 }}
-                className="h-full w-full"
+                className="h-full w-full pointer-events-none"
                 onReady={onPlayerReady}
                 onStateChange={onPlayerStateChange}
               />
