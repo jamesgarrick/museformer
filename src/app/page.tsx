@@ -14,6 +14,13 @@ import {
   ChevronDoubleRightIcon,
 } from "@heroicons/react/24/solid";
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 // Helper: Extract YouTube videoId from URL.
 function extractVideoId(url: string): string | null {
   const regExp =
@@ -377,7 +384,7 @@ const Home = () => {
 
       {/* Timeline Section fills available space */}
       <main className="flex-grow flex flex-col gap-1">
-        <div className="relative bg-gray-200 rounded shadow overflow-hidden flex-grow mx-4 mt-4 pb-4">
+        <div className="relative bg-gray-200 rounded shadow overflow-y-hidden overflow-x-scroll flex-grow mx-4 mt-4 pb-4">
           {groups.map((group) => (
             <MusicalGroupComponent
               key={group.id}
@@ -408,73 +415,72 @@ const Home = () => {
           <h2 className="text-lg font-semibold mb-2">Tools</h2>
           {/* Inner container for buttons */}
           <div className="grid grid-cols-2 gap-3 flex-grow min-h-0">
-            <Button variant="outline" className="w-full flex-1 min-h-0">
-              Text Analysis
-            </Button>
-            <Button variant="outline" className="w-full flex-1 min-h-0">
-              Color Picker
-            </Button>
-            <Button variant="outline" className="w-full flex-1 min-h-0">
-              Motif Grouping
-            </Button>
-            <Button variant="outline" className="w-full flex-1 min-h-0">
-              Theme
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full flex-1 min-h-0"
-              onClick={handleDeleteGroup}
-            >
-              Delete Group
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full flex-1 min-h-0"
-              onClick={handleSplitGroup}
-            >
-              Split Group (S)
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full flex-1 min-h-0"
-              onClick={handleGroupSelected}
-            >
-              Group Selected (G)
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" className="w-full flex-1 min-h-0">
+                    Colors
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>C</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full flex-1 min-h-0"
+                    onClick={handleDeleteGroup}
+                  >
+                    Delete Group
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>D</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full flex-1 min-h-0"
+                    onClick={handleSplitGroup}
+                  >
+                    Split Group
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>S</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full flex-1 min-h-0"
+                    onClick={handleGroupSelected}
+                  >
+                    Group Selecte
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>G</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <Button
               variant="outline"
               className="w-full flex-1 min-h-0"
               disabled
             >
-              Media Controls
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full flex-1 min-h-0"
-              disabled
-            >
-              Zoom In/Out
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full flex-1 min-h-0"
-              disabled
-            >
-              Undo/Redo
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full flex-1 min-h-0"
-              disabled
-            >
-              Change Group Shape
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full flex-1 min-h-0"
-              disabled
-            >
-              Change Color/Text
+              Shapes
             </Button>
           </div>
         </div>
