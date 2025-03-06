@@ -1,16 +1,10 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import YouTube, { YouTubeProps } from "react-youtube";
-
-// Import shadcn/ui components
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
-// Import our MusicalGroupComponent and MusicalGroup interface.
 import MusicalGroupComponent from "@/components/ui/MusicalGroupComponent";
 import { MusicalGroup } from "@/interfaces/MusicalGroup";
-
-// Import Heroicons for media controls
 import {
   PlayIcon,
   PauseIcon,
@@ -244,7 +238,6 @@ const Home = () => {
     );
   };
 
-  // New function to handle text updates from MusicalGroupComponent
   const handleTextChange = (
     groupId: string,
     position: keyof MusicalGroup["texts"],
@@ -259,7 +252,6 @@ const Home = () => {
     );
   };
 
-  // Implemented Actions
   const handleSplitGroup = () => {
     if (!player || duration === 0) return;
     const newGroups = splitGroupAtTime(groups, currentTime);
@@ -377,102 +369,128 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
+    <div className="h-screen overflow-hidden bg-gray-50 flex flex-col">
+      {/* Header remains */}
       <header className="bg-gray-900 text-white p-4">
         <h1 className="text-2xl font-bold">Chord Timeline Editor</h1>
       </header>
-      {/* Main Content Area */}
-      <div className="flex flex-grow overflow-hidden">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white shadow p-4 space-y-3 border-r">
-          <h2 className="text-lg font-semibold">Tools</h2>
-          <Button variant="outline" className="w-full">
-            Text Analysis
-          </Button>
-          <Button variant="outline" className="w-full">
-            Color Picker
-          </Button>
-          <Button variant="outline" className="w-full">
-            Motif Grouping
-          </Button>
-          <Button variant="outline" className="w-full">
-            Theme
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleDeleteGroup}
-          >
-            Delete Group
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleSplitGroup}
-          >
-            Split Group (S)
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleGroupSelected}
-          >
-            Group Selected (G)
-          </Button>
-          {/* Future Features */}
-          <Button variant="outline" className="w-full" disabled>
-            Media Controls (Coming Soon)
-          </Button>
-          <Button variant="outline" className="w-full" disabled>
-            Zoom In/Out (Coming Soon)
-          </Button>
-          <Button variant="outline" className="w-full" disabled>
-            Undo/Redo (Coming Soon)
-          </Button>
-          <Button variant="outline" className="w-full" disabled>
-            Change Group Shape (Coming Soon)
-          </Button>
-          <Button variant="outline" className="w-full" disabled>
-            Change Color/Text (Coming Soon)
-          </Button>
-        </aside>
-        {/* Timeline Editor */}
-        <main className="flex-grow flex flex-col">
-          {/* Timeline Bar */}
-          <div className="relative flex-grow bg-gray-200 m-4 rounded shadow overflow-hidden">
-            {groups.map((group) => (
-              <MusicalGroupComponent
-                key={group.id}
-                group={group}
-                totalDuration={duration}
-                selected={selectedGroupIds.includes(group.id)}
-                onClick={toggleGroupSelection}
-                onTextChange={handleTextChange}
-              />
-            ))}
-            <div
-              ref={timelineRef}
-              className="absolute bottom-0 w-full h-2 bg-blue-500 cursor-pointer"
-              onClick={handleTimelineClick}
-              style={{ width: `${progressWidth}%` }}
-            ></div>
+
+      {/* Timeline Section fills available space */}
+      <main className="flex-grow flex flex-col">
+        <div className="relative bg-gray-200 rounded shadow overflow-hidden flex-grow mx-4 mt-4">
+          {groups.map((group) => (
+            <MusicalGroupComponent
+              key={group.id}
+              group={group}
+              totalDuration={duration}
+              selected={selectedGroupIds.includes(group.id)}
+              onClick={toggleGroupSelection}
+              onTextChange={handleTextChange}
+            />
+          ))}
+          <div
+            ref={timelineRef}
+            className="absolute bottom-0 w-full h-2 bg-blue-500 cursor-pointer"
+            onClick={handleTimelineClick}
+            style={{ width: `${progressWidth}%` }}
+          ></div>
+        </div>
+      </main>
+
+      {/* Bottom Bar */}
+      <footer className="border-t bg-white flex h-[40vh]">
+        {/* Tools Section */}
+        <div className="flex-none flex flex-col h-full p-4 overflow-y-auto">
+          <h2 className="text-lg font-semibold mb-2">Tools</h2>
+          {/* Inner container for buttons */}
+          <div className="grid grid-cols-2 gap-3 flex-grow min-h-0">
+            <Button variant="outline" className="w-full flex-1 min-h-0">
+              Text Analysis
+            </Button>
+            <Button variant="outline" className="w-full flex-1 min-h-0">
+              Color Picker
+            </Button>
+            <Button variant="outline" className="w-full flex-1 min-h-0">
+              Motif Grouping
+            </Button>
+            <Button variant="outline" className="w-full flex-1 min-h-0">
+              Theme
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full flex-1 min-h-0"
+              onClick={handleDeleteGroup}
+            >
+              Delete Group
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full flex-1 min-h-0"
+              onClick={handleSplitGroup}
+            >
+              Split Group (S)
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full flex-1 min-h-0"
+              onClick={handleGroupSelected}
+            >
+              Group Selected (G)
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full flex-1 min-h-0"
+              disabled
+            >
+              Media Controls
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full flex-1 min-h-0"
+              disabled
+            >
+              Zoom In/Out
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full flex-1 min-h-0"
+              disabled
+            >
+              Undo/Redo
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full flex-1 min-h-0"
+              disabled
+            >
+              Change Group Shape
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full flex-1 min-h-0"
+              disabled
+            >
+              Change Color/Text
+            </Button>
           </div>
-        </main>
-      </div>
-      {/* Footer: Video Container and Media Controls */}
-      <footer className="bg-white border-t p-4">
-        <div className="flex flex-col items-center">
-          {/* Video Container */}
-          <div className="mb-4">
+        </div>
+
+        {/* Spacer */}
+        <div className="flex-grow"></div>
+
+        {/* Video & Media Controls Section */}
+        <div className="flex-none flex flex-col h-full p-4">
+          {/* Video container: fills available space */}
+          <div className="h-full">
             {videoId ? (
               <YouTube
                 videoId={videoId}
                 opts={{
-                  width: "640",
-                  height: "360",
+                  width: "100%",
+                  height: "100%",
                   playerVars: { autoplay: 0 },
                 }}
+                className="h-full w-full"
                 onReady={onPlayerReady}
                 onStateChange={onPlayerStateChange}
               />
@@ -494,51 +512,53 @@ const Home = () => {
               </form>
             )}
           </div>
-          {/* Media Controls */}
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              className="flex items-center"
-              onClick={handleBeginning}
-            >
-              <ChevronDoubleLeftIcon className="w-5 h-5 mr-1" />
-              <span>Beginning</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="flex items-center"
-              onClick={handleRewind}
-            >
-              <ArrowUturnLeftIcon className="w-5 h-5 mr-1" />
-              <span>Rewind</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="flex items-center"
-              onClick={handlePlay}
-            >
-              {isPlaying ? (
-                <PauseIcon className="w-5 h-5" />
-              ) : (
-                <PlayIcon className="w-5 h-5" />
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              className="flex items-center"
-              onClick={handleForward}
-            >
-              <ArrowUturnRightIcon className="w-5 h-5 mr-1" />
-              <span>Forward</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="flex items-center"
-              onClick={handleEnd}
-            >
-              <ChevronDoubleRightIcon className="w-5 h-5 mr-1" />
-              <span>End</span>
-            </Button>
+          {/* Media controls container: sits at the bottom */}
+          <div className="mt-4 flex justify-end">
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                className="flex items-center"
+                onClick={handleBeginning}
+              >
+                <ChevronDoubleLeftIcon className="w-5 h-5 mr-1" />
+                <span>Beginning</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="flex items-center"
+                onClick={handleRewind}
+              >
+                <ArrowUturnLeftIcon className="w-5 h-5 mr-1" />
+                <span>Rewind</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="flex items-center"
+                onClick={handlePlay}
+              >
+                {isPlaying ? (
+                  <PauseIcon className="w-5 h-5" />
+                ) : (
+                  <PlayIcon className="w-5 h-5" />
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                className="flex items-center"
+                onClick={handleForward}
+              >
+                <ArrowUturnRightIcon className="w-5 h-5 mr-1" />
+                <span>Forward</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="flex items-center"
+                onClick={handleEnd}
+              >
+                <ChevronDoubleRightIcon className="w-5 h-5 mr-1" />
+                <span>End</span>
+              </Button>
+            </div>
           </div>
         </div>
       </footer>
