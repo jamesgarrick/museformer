@@ -391,10 +391,14 @@ const Home = () => {
         </div>
         <div
           ref={timelineRef}
-          className="bottom-0 w-full h-4 bg-blue-500 cursor-pointer"
+          className="w-full h-4 bg-gray-300 cursor-pointer"
           onClick={handleTimelineClick}
-          style={{ width: `${progressWidth}%` }}
-        ></div>
+        >
+          <div
+            className="h-4 bg-blue-500"
+            style={{ width: `${progressWidth}%` }}
+          ></div>
+        </div>
       </main>
 
       {/* Bottom Bar */}
