@@ -376,8 +376,8 @@ const Home = () => {
       </header>
 
       {/* Timeline Section fills available space */}
-      <main className="flex-grow flex flex-col">
-        <div className="relative bg-gray-200 rounded shadow overflow-hidden flex-grow mx-4 mt-4">
+      <main className="flex-grow flex flex-col gap-1">
+        <div className="relative bg-gray-200 rounded shadow overflow-hidden flex-grow mx-4 mt-4 pb-4">
           {groups.map((group) => (
             <MusicalGroupComponent
               key={group.id}
@@ -388,13 +388,13 @@ const Home = () => {
               onTextChange={handleTextChange}
             />
           ))}
-          <div
-            ref={timelineRef}
-            className="absolute bottom-0 w-full h-2 bg-blue-500 cursor-pointer"
-            onClick={handleTimelineClick}
-            style={{ width: `${progressWidth}%` }}
-          ></div>
         </div>
+        <div
+          ref={timelineRef}
+          className="bottom-0 w-full h-4 bg-blue-500 cursor-pointer"
+          onClick={handleTimelineClick}
+          style={{ width: `${progressWidth}%` }}
+        ></div>
       </main>
 
       {/* Bottom Bar */}
