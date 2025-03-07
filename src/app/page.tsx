@@ -376,15 +376,15 @@ const Home = () => {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-gray-50 flex flex-col">
+    <div className="h-screen overflow-hidden bg-gray-200 flex flex-col">
       {/* Header remains */}
-      <header className="bg-gray-900 text-white p-4">
-        <h1 className="text-2xl font-bold">Chord Timeline Editor</h1>
+      <header className="bg-gray-200 p-4">
+        <h1 className="text-2xl font-bold">Museformer</h1>
       </header>
 
       {/* Timeline Section fills available space */}
       <main className="flex-grow flex flex-col gap-1">
-        <div className="relative bg-gray-200 rounded shadow overflow-y-hidden overflow-x-scroll flex-grow mx-4 mt-4 pb-4">
+        <div className="relative bg-gray-300 shadow overflow-y-hidden overflow-x-scroll flex-grow pb-4">
           {groups.map((group) => (
             <MusicalGroupComponent
               key={group.id}
@@ -409,7 +409,7 @@ const Home = () => {
       </main>
 
       {/* Bottom Bar */}
-      <footer className="border-t bg-white flex h-[40vh]">
+      <footer className="border-t flex h-[40vh] bg-gray-100">
         {/* Tools Section */}
         <div className="flex-none flex flex-col h-full p-4 overflow-y-auto">
           <h2 className="text-lg font-semibold mb-2">Tools</h2>
@@ -506,7 +506,7 @@ const Home = () => {
                     fs: 0,
                   },
                 }}
-                className="h-full w-full pointer-events-none"
+                className="h-full w-full"
                 onReady={onPlayerReady}
                 onStateChange={onPlayerStateChange}
               />
