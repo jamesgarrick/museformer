@@ -6,158 +6,16 @@ import { Button } from "@/components/ui/button";
 import MusicalGroupComponent from "@/components/ui/MusicalGroupComponent";
 import { MusicalGroup } from "@/interfaces/MusicalGroup";
 import {
-  PlayIcon,
-  PauseIcon,
-  ArrowUturnLeftIcon,
-  ArrowUturnRightIcon,
-  ChevronDoubleLeftIcon,
-  ChevronDoubleRightIcon,
-} from "@heroicons/react/24/solid";
-
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// Helper: Extract YouTube videoId from URL.
-function extractVideoId(url: string): string | null {
-  const regExp =
-    /^.*((youtu\.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-  const match = url.match(regExp);
-  return match && match[7].length === 11 ? match[7] : null;
-}
-
-/**
- * Splits the group that contains the current playback time into two segments.
- */
-function splitGroupAtTime(
-  groups: MusicalGroup[],
-  currentTime: number
-): MusicalGroup[] {
-  const candidates = groups.filter(
-    (g) => g.startTime <= currentTime && currentTime < g.endTime
-  );
-  if (candidates.length === 0) return groups;
-  const target = candidates.reduce((prev, curr) =>
-    (prev.layer ?? 0) <= (curr.layer ?? 0) ? prev : curr
-  );
-  if (currentTime <= target.startTime || currentTime >= target.endTime)
-    return groups;
-  const leftPart: MusicalGroup = {
-    ...target,
-    endTime: currentTime,
-    texts: { ...target.texts },
-    layer: target.layer ?? 0,
-  };
-  const rightPart: MusicalGroup = {
-    ...target,
-    id: Date.now().toString() + Math.random().toString(36).substring(2),
-    startTime: currentTime,
-    texts: { ...target.texts },
-    layer: target.layer ?? 0,
-  };
-  const newGroups = [...groups];
-  const index = newGroups.findIndex((g) => g.id === target.id);
-  newGroups.splice(index, 1, leftPart, rightPart);
-  newGroups.sort((a, b) => a.startTime - b.startTime);
-  newGroups.forEach((grp) => {
-    if (grp.children) {
-      grp.children = grp.children.flatMap((child) =>
-        child.id === target.id ? [leftPart, rightPart] : [child]
-      );
-    }
-  });
-  return newGroups;
-}
-
-/**
- * Groups the selected groups into a new higher-order (overlay) group.
- */
-function groupSelectedGroups(
-  groups: MusicalGroup[],
-  selectedIds: string[]
-): MusicalGroup[] {
-  if (selectedIds.length === 0) return groups;
-  const selectedGroups = groups.filter((g) => selectedIds.includes(g.id));
-  if (selectedGroups.length === 0) return groups;
-  const minStart = Math.min(...selectedGroups.map((g) => g.startTime));
-  const maxEnd = Math.max(...selectedGroups.map((g) => g.endTime));
-  const candidateParents = groups.filter((g) => {
-    if (!g.children || g.children.length === 0) return false;
-    const childIds = g.children.map((child) => child.id);
-    return selectedGroups.every((sg) => childIds.includes(sg.id));
-  });
-  for (const parent of candidateParents) {
-    const effectiveStart = Math.min(
-      ...parent.children!.map((child) => child.startTime)
-    );
-    const effectiveEnd = Math.max(
-      ...parent.children!.map((child) => child.endTime)
-    );
-    if (effectiveStart === minStart || effectiveEnd === maxEnd) {
-      alert(
-        "There is a parent group that starts or ends during the selected span - Boundaries cannot overlap like that (2)"
-      );
-      return groups;
-    }
-  }
-  if (candidateParents.length > 0) {
-    candidateParents.sort(
-      (a, b) => a.endTime - a.startTime - (b.endTime - b.startTime)
-    );
-    const candidate = candidateParents[0];
-    const newGroup: MusicalGroup = {
-      id: Date.now().toString() + Math.random().toString(36).substring(2),
-      startTime: minStart,
-      endTime: maxEnd,
-      shape: "rectangle",
-      color: "#4CAF50",
-      texts: {
-        topLeft: "",
-        topMiddle: "",
-        topRight: "",
-        middleLeft: "",
-        middleMiddle: "",
-        middleRight: "",
-        bottomLeft: "",
-        bottomMiddle: "",
-        bottomRight: "",
-      },
-      children: selectedGroups,
-      layer: candidate.layer,
-    };
-    candidate.children = candidate.children!.filter(
-      (child) => !selectedIds.includes(child.id)
-    );
-    candidate.children.push(newGroup);
-    candidate.layer = (candidate.layer ?? 0) + 1;
-    return [...groups, newGroup].sort((a, b) => a.startTime - b.startTime);
-  }
-  const maxSelectedLayer = Math.max(...selectedGroups.map((g) => g.layer ?? 0));
-  const newGroup: MusicalGroup = {
-    id: Date.now().toString() + Math.random().toString(36).substring(2),
-    startTime: minStart,
-    endTime: maxEnd,
-    shape: "rectangle",
-    color: "#4CAF50",
-    texts: {
-      topLeft: "",
-      topMiddle: "",
-      topRight: "",
-      middleLeft: "",
-      middleMiddle: "",
-      middleRight: "",
-      bottomLeft: "",
-      bottomMiddle: "",
-      bottomRight: "",
-    },
-    children: selectedGroups,
-    layer: maxSelectedLayer + 1,
-  };
-  return [...groups, newGroup].sort((a, b) => a.startTime - b.startTime);
-}
+import Timeline from "@/components/Timeline";
+import MediaControls from "@/components/MediaControls";
+import { extractVideoId } from "@/utils/youtube";
+import { splitGroupAtTime, groupSelectedGroups } from "@/utils/musicalGroups";
 
 const Home = () => {
   const [youtubeUrl, setYoutubeUrl] = useState("");
@@ -236,8 +94,6 @@ const Home = () => {
     player.seekTo(newTime, true);
     setCurrentTime(newTime);
   };
-
-  const progressWidth = duration ? (currentTime / duration) * 100 : 0;
 
   const toggleGroupSelection = (id: string) => {
     setSelectedGroupIds((prev) =>
@@ -377,12 +233,12 @@ const Home = () => {
 
   return (
     <div className="h-screen overflow-hidden bg-gray-200 flex flex-col">
-      {/* Header remains */}
+      {/* Header */}
       <header className="bg-gray-200 p-4">
         <h1 className="text-2xl font-bold">Museformer</h1>
       </header>
 
-      {/* Timeline Section fills available space */}
+      {/* Timeline Section */}
       <main className="flex-grow flex flex-col gap-1">
         <div className="relative bg-gray-300 shadow overflow-y-hidden overflow-x-scroll flex-grow pb-4">
           {groups.map((group) => (
@@ -396,15 +252,12 @@ const Home = () => {
             />
           ))}
         </div>
-        <div
-          ref={timelineRef}
-          className="w-full h-4 bg-gray-300 cursor-pointer"
-          onClick={handleTimelineClick}
-        >
-          <div
-            className="h-4 bg-blue-500"
-            style={{ width: `${progressWidth}%` }}
-          ></div>
+        <div ref={timelineRef}>
+          <Timeline
+            duration={duration}
+            currentTime={currentTime}
+            onTimelineClick={handleTimelineClick}
+          />
         </div>
       </main>
 
@@ -413,7 +266,6 @@ const Home = () => {
         {/* Tools Section */}
         <div className="flex-none flex flex-col h-full p-4 overflow-y-auto">
           <h2 className="text-lg font-semibold mb-2">Tools</h2>
-          {/* Inner container for buttons */}
           <div className="grid grid-cols-2 gap-3 flex-grow min-h-0">
             <TooltipProvider>
               <Tooltip>
@@ -467,7 +319,7 @@ const Home = () => {
                     className="w-full flex-1 min-h-0"
                     onClick={handleGroupSelected}
                   >
-                    Group Selecte
+                    Group Selected
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -490,7 +342,6 @@ const Home = () => {
 
         {/* Video & Media Controls Section */}
         <div className="flex-none flex flex-col h-full p-4">
-          {/* Video container: fills available space */}
           <div className="h-full">
             {videoId ? (
               <YouTube
@@ -528,54 +379,14 @@ const Home = () => {
               </form>
             )}
           </div>
-          {/* Media controls container: sits at the bottom */}
-          <div className="mt-4 flex justify-end">
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                className="flex items-center"
-                onClick={handleBeginning}
-              >
-                <ChevronDoubleLeftIcon className="w-5 h-5 mr-1" />
-                <span>Beginning</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="flex items-center"
-                onClick={handleRewind}
-              >
-                <ArrowUturnLeftIcon className="w-5 h-5 mr-1" />
-                <span>Rewind</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="flex items-center"
-                onClick={handlePlay}
-              >
-                {isPlaying ? (
-                  <PauseIcon className="w-5 h-5" />
-                ) : (
-                  <PlayIcon className="w-5 h-5" />
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                className="flex items-center"
-                onClick={handleForward}
-              >
-                <ArrowUturnRightIcon className="w-5 h-5 mr-1" />
-                <span>Forward</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="flex items-center"
-                onClick={handleEnd}
-              >
-                <ChevronDoubleRightIcon className="w-5 h-5 mr-1" />
-                <span>End</span>
-              </Button>
-            </div>
-          </div>
+          <MediaControls
+            isPlaying={isPlaying}
+            onBeginning={handleBeginning}
+            onRewind={handleRewind}
+            onPlay={handlePlay}
+            onForward={handleForward}
+            onEnd={handleEnd}
+          />
         </div>
       </footer>
     </div>
