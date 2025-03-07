@@ -5,6 +5,7 @@ import { MusicalGroup } from "@/interfaces/MusicalGroup";
 interface MusicalGroupComponentProps {
   group: MusicalGroup;
   totalDuration: number; // Total timeline duration in seconds
+  zoomLevel: number; // Zoom factor (1 = normal, >1 = zoomed in)
   selected?: boolean;
   onClick?: (id: string) => void;
   onTextChange?: (
@@ -19,14 +20,17 @@ const LAYER_HEIGHT = 100; // Height in pixels for each layer
 const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
   group,
   totalDuration,
+  zoomLevel,
   selected = false,
   onClick,
   onTextChange,
 }) => {
-  // Compute horizontal positioning
-  const leftPercent = (group.startTime / totalDuration) * 100;
-  const widthPercent =
-    ((group.endTime - group.startTime) / totalDuration) * 100;
+  // Compute the total timeline width in pixels (assuming viewport width is used)
+  const timelineWidth = zoomLevel * window.innerWidth;
+  // Compute horizontal positioning in pixels based on zoom.
+  const leftPx = (group.startTime / totalDuration) * timelineWidth;
+  const widthPx =
+    ((group.endTime - group.startTime) / totalDuration) * timelineWidth;
   // Compute vertical positioning from the group's layer value
   const bottom = (group.layer ?? 0) * LAYER_HEIGHT;
   const height = LAYER_HEIGHT;
@@ -45,12 +49,10 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     position: keyof MusicalGroup["texts"],
     e: React.MouseEvent
   ) => {
-    // Prevent outer container click from also firing
     e.stopPropagation();
     if (clickTimeoutRef.current) {
       clearTimeout(clickTimeoutRef.current);
     }
-    // Delay the single-tap action to check for double tap
     clickTimeoutRef.current = setTimeout(() => {
       if (onClick) onClick(group.id);
       clickTimeoutRef.current = null;
@@ -62,27 +64,22 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     position: keyof MusicalGroup["texts"],
     e: React.MouseEvent
   ) => {
-    // Cancel pending single-tap action
     e.stopPropagation();
     if (clickTimeoutRef.current) {
       clearTimeout(clickTimeoutRef.current);
       clickTimeoutRef.current = null;
     }
-    // If group is selected, deselect it
     if (selected && onClick) {
       onClick(group.id);
     }
-    // Then immediately enter text edit mode
     setEditingField(position);
     setEditingValue(group.texts[position]);
   };
 
-  // Update text on change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEditingValue(e.target.value);
   };
 
-  // Commit changes on blur or Enter key
   const finishEditing = () => {
     if (editingField && onTextChange) {
       onTextChange(group.id, editingField, editingValue);
@@ -96,7 +93,6 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     }
   };
 
-  // Grid container for text fields
   const gridContainerStyle: React.CSSProperties = {
     display: "grid",
     gridTemplateAreas: `
@@ -110,7 +106,6 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     height: "100%",
   };
 
-  // Determine text alignment based on the position key
   const getTextAlign = (position: string): "left" | "center" | "right" => {
     if (position.endsWith("Left")) return "left";
     if (position.endsWith("Right")) return "right";
@@ -121,15 +116,14 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     <div
       className="absolute box-border cursor-pointer pointer-events-auto border-t-2 border-l-2 border-r-2 border-b-0"
       style={{
-        left: `${leftPercent}%`,
-        width: `${widthPercent}%`,
+        left: `${leftPx}px`,
+        width: `${widthPx}px`,
         bottom: `${bottom}px`,
         height: `${height}px`,
         borderColor: "black",
         backgroundColor: "transparent",
       }}
       title={Object.values(group.texts).join(" | ")}
-      // Outer container click selects the group (when clicking outside text cells)
       onClick={(e) => {
         e.stopPropagation();
         if (onClick) onClick(group.id);

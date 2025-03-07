@@ -2,22 +2,20 @@ import React from "react";
 
 interface TimelineProps {
   duration: number;
-  currentTime: number;
+  zoomLevel: number;
   onTimelineClick: (e: React.MouseEvent<HTMLDivElement>) => void;
 }
 
-const Timeline: React.FC<TimelineProps> = ({
-  duration,
-  currentTime,
-  onTimelineClick,
-}) => {
-  const progressWidth = duration ? (currentTime / duration) * 100 : 0;
+const Timeline: React.FC<TimelineProps> = ({ zoomLevel, onTimelineClick }) => {
+  // Total timeline width in pixels.
+  const totalWidth = zoomLevel * window.innerWidth;
   return (
     <div
-      className="w-full h-4 bg-gray-300 cursor-pointer"
       onClick={onTimelineClick}
+      style={{ width: totalWidth }}
+      className="h-4 bg-gray-300 cursor-pointer"
     >
-      <div className="h-4 bg-blue-500" style={{ width: `${progressWidth}%` }} />
+      {/* Timeline background (can be extended with markers or grid lines) */}
     </div>
   );
 };

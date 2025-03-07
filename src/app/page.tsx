@@ -18,6 +18,12 @@ import { extractVideoId } from "@/utils/youtube";
 import { splitGroupAtTime, groupSelectedGroups } from "@/utils/musicalGroups";
 
 const Home = () => {
+  // Zoom level as a reactive variable; 2 means 200vw, etc.
+  const [zoomLevel, setZoomLevel] = useState(2);
+  const containerWidthVW = zoomLevel * 100; // in vw units
+
+  // State for tracking horizontal scroll offset (in pixels)
+  const [timelineScroll, setTimelineScroll] = useState(0);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [videoId, setVideoId] = useState<string | null>(null);
   const [player, setPlayer] = useState<YT.Player | null>(null);
@@ -28,6 +34,26 @@ const Home = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Zoom controls: Increase zoom with "=" or "+"; decrease with "-" or "_"
+  useEffect(() => {
+    const handleZoom = (e: KeyboardEvent) => {
+      const active = document.activeElement as HTMLElement;
+      if (
+        active &&
+        (active.tagName === "INPUT" || active.tagName === "TEXTAREA")
+      ) {
+        return;
+      }
+      if (e.key === "=" || e.key === "+") {
+        setZoomLevel((prev) => prev + 0.25);
+      } else if (e.key === "-" || e.key === "_") {
+        setZoomLevel((prev) => Math.max(0.5, prev - 0.25));
+      }
+    };
+    window.addEventListener("keydown", handleZoom);
+    return () => window.removeEventListener("keydown", handleZoom);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +102,6 @@ const Home = () => {
 
   const onPlayerStateChange: YouTubeProps["onStateChange"] = (event) => {
     const state = event.data;
-    // 1: playing, 2: paused
     setIsPlaying(state === 1);
   };
 
@@ -90,7 +115,9 @@ const Home = () => {
     if (!timelineRef.current || !player || duration === 0) return;
     const rect = timelineRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
-    const newTime = (clickX / rect.width) * duration;
+    const totalWidth = zoomLevel * window.innerWidth;
+    // Adjust click position with scroll offset
+    const newTime = ((clickX + timelineScroll) / totalWidth) * duration;
     player.seekTo(newTime, true);
     setCurrentTime(newTime);
   };
@@ -168,6 +195,7 @@ const Home = () => {
     setSelectedGroupIds([]);
   };
 
+  // Key handler for group splitting and grouping (s and g keys)
   useEffect(() => {
     const keyHandler = (e: KeyboardEvent) => {
       const active = document.activeElement as HTMLElement;
@@ -184,12 +212,10 @@ const Home = () => {
       }
     };
     document.addEventListener("keydown", keyHandler);
-    return () => {
-      document.removeEventListener("keydown", keyHandler);
-    };
+    return () => document.removeEventListener("keydown", keyHandler);
   }, [groups, selectedGroupIds, currentTime, duration]);
 
-  // --- Media Control Handlers ---
+  // Media control handlers
   const handleBeginning = () => {
     if (player) {
       player.seekTo(0, true);
@@ -231,6 +257,13 @@ const Home = () => {
     }
   };
 
+  // Compute total timeline width (in pixels) and playhead position
+  const totalTimelineWidth = zoomLevel * window.innerWidth;
+  const playheadAbsolute = duration
+    ? (currentTime / duration) * totalTimelineWidth
+    : 0;
+  const playheadLeft = playheadAbsolute - timelineScroll;
+
   return (
     <div className="h-screen overflow-hidden bg-gray-200 flex flex-col">
       {/* Header */}
@@ -240,24 +273,40 @@ const Home = () => {
 
       {/* Timeline Section */}
       <main className="flex-grow flex flex-col gap-1">
-        <div className="relative bg-gray-300 shadow overflow-y-hidden overflow-x-scroll flex-grow pb-4">
-          {groups.map((group) => (
-            <MusicalGroupComponent
-              key={group.id}
-              group={group}
-              totalDuration={duration}
-              selected={selectedGroupIds.includes(group.id)}
-              onClick={toggleGroupSelection}
-              onTextChange={handleTextChange}
+        {/* Container wrapping both Musical Groups and Timeline */}
+        <div className="relative bg-gray-300 shadow overflow-x-auto flex flex-col flex-grow no-scrollbar">
+          {/* Musical Groups Container */}
+          <div className="flex-grow" style={{ width: `${containerWidthVW}vw` }}>
+            {groups.map((group) => (
+              <MusicalGroupComponent
+                key={group.id}
+                group={group}
+                totalDuration={duration}
+                selected={selectedGroupIds.includes(group.id)}
+                onClick={toggleGroupSelection}
+                onTextChange={handleTextChange}
+                zoomLevel={zoomLevel}
+              />
+            ))}
+          </div>
+          {/* Timeline Bar Container (pushed to bottom) */}
+          <div
+            ref={timelineRef}
+            className="relative overflow-x-auto"
+            style={{ width: `${containerWidthVW}vw`, height: "1rem" }}
+            onScroll={(e) => setTimelineScroll(e.currentTarget.scrollLeft)}
+          >
+            <Timeline
+              zoomLevel={zoomLevel}
+              duration={duration}
+              onTimelineClick={handleTimelineClick}
             />
-          ))}
-        </div>
-        <div ref={timelineRef}>
-          <Timeline
-            duration={duration}
-            currentTime={currentTime}
-            onTimelineClick={handleTimelineClick}
-          />
+            {/* Playhead Overlay */}
+            <div
+              className="absolute top-0 h-4 w-1 bg-red-500"
+              style={{ left: playheadLeft }}
+            />
+          </div>
         </div>
       </main>
 
