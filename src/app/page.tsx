@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useRef, useEffect } from "react";
 import YouTube, { YouTubeProps } from "react-youtube";
 import { Input } from "@/components/ui/input";
@@ -34,9 +35,13 @@ const Home = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [innerWidth, setInnerWidth] = useState(0);
 
   // Zoom controls: Increase zoom with "=" or "+"; decrease with "-" or "_"
   useEffect(() => {
+    // for client
+    setInnerWidth(window.innerWidth);
+
     const handleZoom = (e: KeyboardEvent) => {
       const active = document.activeElement as HTMLElement;
       if (
@@ -115,7 +120,7 @@ const Home = () => {
     if (!timelineRef.current || !player || duration === 0) return;
     const rect = timelineRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
-    const totalWidth = zoomLevel * window.innerWidth;
+    const totalWidth = zoomLevel * innerWidth;
     // Adjust click position with scroll offset
     const newTime = ((clickX + timelineScroll) / totalWidth) * duration;
     player.seekTo(newTime, true);
@@ -213,7 +218,14 @@ const Home = () => {
     };
     document.addEventListener("keydown", keyHandler);
     return () => document.removeEventListener("keydown", keyHandler);
-  }, [groups, selectedGroupIds, currentTime, duration]);
+  }, [
+    groups,
+    selectedGroupIds,
+    currentTime,
+    duration,
+    handleGroupSelected,
+    handleSplitGroup,
+  ]);
 
   // Media control handlers
   const handleBeginning = () => {
@@ -258,7 +270,7 @@ const Home = () => {
   };
 
   // Compute total timeline width (in pixels) and playhead position
-  const totalTimelineWidth = zoomLevel * window.innerWidth;
+  const totalTimelineWidth = zoomLevel * innerWidth;
   const playheadAbsolute = duration
     ? (currentTime / duration) * totalTimelineWidth
     : 0;

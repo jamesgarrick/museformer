@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useRef } from "react";
 import { MusicalGroup } from "@/interfaces/MusicalGroup";
 

@@ -1,4 +1,7 @@
+"use client";
+
 import React from "react";
+import { useEffect, useState } from "react";
 
 interface TimelineProps {
   duration: number;
@@ -8,7 +11,13 @@ interface TimelineProps {
 
 const Timeline: React.FC<TimelineProps> = ({ zoomLevel, onTimelineClick }) => {
   // Total timeline width in pixels.
-  const totalWidth = zoomLevel * window.innerWidth;
+  const [innerWidth, setInnerWidth] = useState(0);
+
+  useEffect(() => {
+    setInnerWidth(window.innerWidth);
+  }, []);
+
+  const totalWidth = zoomLevel * innerWidth;
   return (
     <div
       onClick={onTimelineClick}
