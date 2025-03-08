@@ -1,6 +1,5 @@
 pages_build_output_dir = ".vercel/output/static"
 name = "museformer"
-main = "src/app/page.tsx"
 
 compatibility_date = "2025-03-01"
 compatibility_flags = [ "nodejs_compat" ]
