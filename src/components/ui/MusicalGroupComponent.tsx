@@ -113,17 +113,27 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     return "center";
   };
 
+  // Base style for the container. By default, we render a 3-sided rectangle.
+  const containerStyle: React.CSSProperties = {
+    left: `${leftPx}px`,
+    width: `${widthPx}px`,
+    bottom: `${bottom}px`,
+    height: `${height}px`,
+    borderColor: "black",
+    backgroundColor: "transparent",
+  };
+
+  // Apply different styling for a "curved" shape.
+  // In this case, we add border radius to the top-left and top-right corners only.
+  if (group.shape === "curved") {
+    containerStyle.borderTopLeftRadius = "15px"; // Adjust the value as needed
+    containerStyle.borderTopRightRadius = "15px"; // Adjust the value as needed
+  }
+
   return (
     <div
       className="absolute box-border cursor-pointer pointer-events-auto border-t-2 border-l-2 border-r-2 border-b-0"
-      style={{
-        left: `${leftPx}px`,
-        width: `${widthPx}px`,
-        bottom: `${bottom}px`,
-        height: `${height}px`,
-        borderColor: "black",
-        backgroundColor: "transparent",
-      }}
+      style={containerStyle}
       title={Object.values(group.texts).join(" | ")}
       onClick={(e) => {
         e.stopPropagation();

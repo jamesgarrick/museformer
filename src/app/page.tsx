@@ -80,7 +80,7 @@ const Home = () => {
         id: "parent-group",
         startTime: 0,
         endTime: videoDuration,
-        shape: "rectangle",
+        shape: "curved",
         color: "#FF5733",
         texts: {
           topLeft: "",
@@ -286,7 +286,7 @@ const Home = () => {
       {/* Timeline Section */}
       <main className="flex-grow flex flex-col gap-1">
         {/* Container wrapping both Musical Groups and Timeline */}
-        <div className="relative bg-gray-300 shadow overflow-x-auto flex flex-col flex-grow no-scrollbar">
+        <div className="relative bg-gray-300 shadow overflow-x-auto overflow-y-hidden flex flex-col flex-grow no-scrollbar">
           {/* Musical Groups Container */}
           <div className="flex-grow" style={{ width: `${containerWidthVW}vw` }}>
             {groups.map((group) => (
