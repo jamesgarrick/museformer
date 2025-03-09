@@ -285,10 +285,10 @@ const Home = () => {
   const playheadLeft = playheadAbsolute - timelineScroll;
 
   return (
-    <div className="h-screen overflow-hidden bg-gray-200 flex flex-col">
+    <div className="h-screen overflow-hidden flex flex-col">
       {/* Header */}
-      <header className="bg-gray-200">
-        <Menubar>
+      <header className="bg-gray-200 h-8 w-fit flex items-center justify-center">
+        <Menubar className="flex items-center justify-center border-none">
           <MenubarMenu>
             <MenubarTrigger className="font-bold">Museformer</MenubarTrigger>
             <MenubarContent>

@@ -43,7 +43,8 @@ const Menubar = React.forwardRef<
   <MenubarPrimitive.Root
     ref={ref}
     className={cn(
-      "flex h-10 items-center space-x-1 rounded-sm border bg-background p-1",
+      // Removed "border" and replaced with "border-none" to eliminate the box
+      "w-full flex h-10 items-center space-x-1 rounded-sm border-none bg-background p-1",
       className
     )}
     {...props}
@@ -51,6 +52,7 @@ const Menubar = React.forwardRef<
 ));
 Menubar.displayName = MenubarPrimitive.Root.displayName;
 
+// UPDATED: Remove w-full/flex-1 to let trigger size to its content.
 const MenubarTrigger = React.forwardRef<
   React.ElementRef<typeof MenubarPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Trigger>
@@ -58,7 +60,7 @@ const MenubarTrigger = React.forwardRef<
   <MenubarPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm font-medium outline-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
+      "inline-flex items-center cursor-default select-none rounded-sm px-3 py-1.5 text-sm font-medium outline-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
       className
     )}
     {...props}
@@ -93,7 +95,7 @@ const MenubarSubContent = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <MenubarPrimitive.SubContent
     ref={ref}
-    // Removed padding ("p-1") and all animation/delay classes.
+    // Removed padding and animation/delay classes.
     className={cn(
       "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground",
       className
