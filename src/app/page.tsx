@@ -12,6 +12,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Menubar,
+  MenubarContent,
+  MenubarItem,
+  MenubarMenu,
+  MenubarSeparator,
+  MenubarTrigger,
+} from "@/components/ui/menubar";
 
 import Timeline from "@/components/Timeline";
 import MediaControls from "@/components/MediaControls";
@@ -279,8 +287,38 @@ const Home = () => {
   return (
     <div className="h-screen overflow-hidden bg-gray-200 flex flex-col">
       {/* Header */}
-      <header className="bg-gray-200 p-4">
-        <h1 className="text-2xl font-bold">Museformer</h1>
+      <header className="bg-gray-200">
+        <Menubar>
+          <MenubarMenu>
+            <MenubarTrigger className="font-bold">Museformer</MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem>Settings</MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+          <MenubarMenu>
+            <MenubarTrigger>File</MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem>New Project</MenubarItem>
+              <MenubarSeparator />
+              <MenubarItem>Share</MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+          <MenubarMenu>
+            <MenubarTrigger>Edit</MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem>Undo</MenubarItem>
+              <MenubarItem>Redo</MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+          <MenubarMenu>
+            <MenubarTrigger>Help</MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem>Online Handbook</MenubarItem>
+              <MenubarSeparator />
+              <MenubarItem>View Logs</MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+        </Menubar>
       </header>
 
       {/* Timeline Section */}
