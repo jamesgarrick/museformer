@@ -242,7 +242,11 @@ const Home = () => {
   }, [player, duration, groups, currentTime]);
 
   const handleGroupSelected = useCallback(() => {
-    if (selectedGroupIds.length === 0) return;
+    // Require at least 2 groups to be selected.
+    if (selectedGroupIds.length < 2) {
+      alert("Please select at least two groups to group them.");
+      return;
+    }
     const newGroups = groupSelectedGroups(groups, selectedGroupIds);
     setGroups(newGroups);
     setSelectedGroupIds([]);

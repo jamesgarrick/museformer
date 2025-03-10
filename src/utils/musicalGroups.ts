@@ -1,5 +1,4 @@
 import { MusicalGroup } from "@/interfaces/MusicalGroup";
-
 /**
  * Splits the group that contains the current playback time into two segments.
  */
@@ -51,68 +50,51 @@ export function groupSelectedGroups(
   selectedIds: string[]
 ): MusicalGroup[] {
   if (selectedIds.length === 0) return groups;
+
   const selectedGroups = groups.filter((g) => selectedIds.includes(g.id));
   if (selectedGroups.length === 0) return groups;
+
   const minStart = Math.min(...selectedGroups.map((g) => g.startTime));
   const maxEnd = Math.max(...selectedGroups.map((g) => g.endTime));
-  const candidateParents = groups.filter((g) => {
+
+  // Debug logs (optional)
+  const DEBUG = true;
+  if (DEBUG) {
+    console.log("Selected groups:", selectedGroups);
+    console.log("New grouping boundaries:", { minStart, maxEnd });
+  }
+
+  // Look for any parent group (a group with children) that has a boundary
+  // (start or end) strictly within the new grouping span.
+  const interferingParents = groups.filter((g) => {
     if (!g.children || g.children.length === 0) return false;
-    const childIds = g.children.map((child) => child.id);
-    return selectedGroups.every((sg) => childIds.includes(sg.id));
+    // If a parent's startTime or endTime falls between minStart and maxEnd,
+    // then it interferes.
+    return (
+      (g.startTime > minStart && g.startTime < maxEnd) ||
+      (g.endTime > minStart && g.endTime < maxEnd)
+    );
   });
-  for (const parent of candidateParents) {
-    const effectiveStart = Math.min(
-      ...parent.children!.map((child) => child.startTime)
-    );
-    const effectiveEnd = Math.max(
-      ...parent.children!.map((child) => child.endTime)
-    );
-    if (effectiveStart === minStart || effectiveEnd === maxEnd) {
-      alert(
-        "There is a parent group that starts or ends during the selected span - Boundaries cannot overlap like that (2)"
-      );
-      return groups;
-    }
+
+  if (DEBUG) {
+    console.log("Interfering parent groups:", interferingParents);
   }
-  if (candidateParents.length > 0) {
-    candidateParents.sort(
-      (a, b) => a.endTime - a.startTime - (b.endTime - b.startTime)
+
+  if (interferingParents.length > 0) {
+    alert(
+      "There is a parent group whose boundaries fall within the selected span – please adjust your selection."
     );
-    const candidate = candidateParents[0];
-    const newGroup: MusicalGroup = {
-      id: Date.now().toString() + Math.random().toString(36).substring(2),
-      startTime: minStart,
-      endTime: maxEnd,
-      shape: "rectangle",
-      color: "#4CAF50",
-      texts: {
-        topLeft: "",
-        topMiddle: "",
-        topRight: "",
-        middleLeft: "",
-        middleMiddle: "",
-        middleRight: "",
-        bottomLeft: "",
-        bottomMiddle: "",
-        bottomRight: "",
-      },
-      children: selectedGroups,
-      layer: candidate.layer,
-    };
-    candidate.children = candidate.children!.filter(
-      (child) => !selectedIds.includes(child.id)
-    );
-    candidate.children.push(newGroup);
-    candidate.layer = (candidate.layer ?? 0) + 1;
-    return [...groups, newGroup].sort((a, b) => a.startTime - b.startTime);
+    return groups;
   }
+
+  // Otherwise, create a new grouping.
   const maxSelectedLayer = Math.max(...selectedGroups.map((g) => g.layer ?? 0));
   const newGroup: MusicalGroup = {
     id: Date.now().toString() + Math.random().toString(36).substring(2),
     startTime: minStart,
     endTime: maxEnd,
     shape: "rectangle",
-    color: "#4CAF50",
+    color: "transparent",
     texts: {
       topLeft: "",
       topMiddle: "",
@@ -127,5 +109,10 @@ export function groupSelectedGroups(
     children: selectedGroups,
     layer: maxSelectedLayer + 1,
   };
+
+  if (DEBUG) {
+    console.log("Created new standalone group:", newGroup);
+  }
+
   return [...groups, newGroup].sort((a, b) => a.startTime - b.startTime);
 }

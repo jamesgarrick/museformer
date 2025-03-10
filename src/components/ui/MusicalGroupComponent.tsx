@@ -154,8 +154,8 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
       </div>
       {selected && (
         <div
-          className="absolute inset-0 bg-blue-300 pointer-events-none"
-          style={{ opacity: 0.15 }}
+          className="absolute inset-0 bg-blue-400 pointer-events-none"
+          style={{ opacity: 0.25 }}
         ></div>
       )}
     </div>
