@@ -95,7 +95,7 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     bottom: `${bottom}px`,
     height: `${height}px`,
     borderColor: "black",
-    backgroundColor: "transparent",
+    backgroundColor: group.color,
   };
 
   if (group.shape === "curved") {

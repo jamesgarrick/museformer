@@ -33,7 +33,11 @@ enum SubMenu {
   // Add more if you like, e.g. "SHAPES", "LAYERS", etc.
 }
 
-function ColorMenu() {
+type ColorMenuProps = {
+  onColorSelect: (color: string) => void;
+};
+
+function ColorMenu({ onColorSelect }: ColorMenuProps) {
   const colors = [
     { color: "#FF0000", label: "Red" },
     { color: "#00FF00", label: "Green" },
@@ -72,6 +76,7 @@ function ColorMenu() {
           label={c.label}
           onClick={() => {
             /* no effect for now */
+            onColorSelect(c.color);
           }}
         />
       ))}
@@ -124,6 +129,20 @@ const Home = () => {
     return () => window.removeEventListener("keydown", handleZoom);
   }, []);
 
+  const handleColorSelect = useCallback(
+    (color: string) => {
+      // If no group is selected, do nothing.
+      if (selectedGroupIds.length === 0) return;
+
+      setGroups((prevGroups) =>
+        prevGroups.map((group) =>
+          selectedGroupIds.includes(group.id) ? { ...group, color } : group
+        )
+      );
+    },
+    [selectedGroupIds]
+  );
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const id = extractVideoId(youtubeUrl);
@@ -145,7 +164,7 @@ const Home = () => {
         startTime: 0,
         endTime: videoDuration,
         shape: "curved",
-        color: "#FF5733",
+        color: "transparent",
         texts: {
           topLeft: "",
           topMiddle: "",
@@ -541,7 +560,10 @@ const Home = () => {
         </div>
 
         <div className="flex-grow p-4 overflow-y-auto min-h-0">
-          {activeSubMenu === SubMenu.COLORS && <ColorMenu />}
+          {activeSubMenu === SubMenu.COLORS && (
+            <ColorMenu onColorSelect={handleColorSelect} />
+          )}
+          ]
         </div>
 
         {/* Video & Media Controls Section */}
