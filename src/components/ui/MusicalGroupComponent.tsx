@@ -5,10 +5,9 @@ import { MusicalGroup } from "@/interfaces/MusicalGroup";
 
 interface MusicalGroupComponentProps {
   group: MusicalGroup;
-  totalDuration: number; // Total timeline duration in seconds
-  zoomLevel: number; // Zoom factor (1 = normal, >1 = zoomed in)
+  totalDuration: number;
+  zoomLevel: number;
   selected?: boolean;
-  // Updated onClick: now receives (id: string, multiSelect: boolean)
   onClick?: (id: string, multiSelect: boolean) => void;
   onTextChange?: (
     groupId: string,
@@ -17,7 +16,7 @@ interface MusicalGroupComponentProps {
   ) => void;
 }
 
-const LAYER_HEIGHT = 100; // Height in pixels for each layer
+const LAYER_HEIGHT = 100;
 
 const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
   group,
@@ -45,7 +44,7 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     e: React.MouseEvent
   ) => {
     e.stopPropagation();
-    const multiSelect = e.metaKey; // True if Cmd key is pressed
+    const multiSelect = e.metaKey;
     if (clickTimeoutRef.current) {
       clearTimeout(clickTimeoutRef.current);
     }
@@ -89,6 +88,23 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     }
   };
 
+  // Make the parent container hide overflow so text can't bleed outside
+  const containerStyle: React.CSSProperties = {
+    left: `${leftPx}px`,
+    width: `${widthPx}px`,
+    bottom: `${bottom}px`,
+    height: `${height}px`,
+    borderColor: "black",
+    backgroundColor: "transparent",
+  };
+
+  if (group.shape === "curved") {
+    containerStyle.borderTopLeftRadius = "15px";
+    containerStyle.borderTopRightRadius = "15px";
+  }
+
+  // Each cell is 1/3 the container's width/height, but we must ensure it can
+  // actually truncate. We'll rely on a "truncate" approach in the <span>.
   const gridContainerStyle: React.CSSProperties = {
     display: "grid",
     gridTemplateAreas: `
@@ -100,32 +116,15 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     gridTemplateRows: "1fr 1fr 1fr",
     width: "100%",
     height: "100%",
+    // Optional: you can also add `overflow: hidden;` here if you want
+    // to ensure each cell doesn't overflow. But typically the parent
+    // container is enough if it has a set width and `overflow: hidden`.
   };
-
-  const getTextAlign = (position: string): "left" | "center" | "right" => {
-    if (position.endsWith("Left")) return "left";
-    if (position.endsWith("Right")) return "right";
-    return "center";
-  };
-
-  const containerStyle: React.CSSProperties = {
-    left: `${leftPx}px`,
-    width: `${widthPx}px`,
-    bottom: `${bottom}px`,
-    height: `${height}px`,
-    borderColor: "black",
-    backgroundColor: "transparent",
-  };
-
-  // For curved shape, add top corner border radius.
-  if (group.shape === "curved") {
-    containerStyle.borderTopLeftRadius = "15px";
-    containerStyle.borderTopRightRadius = "15px";
-  }
 
   return (
     <div
-      className="absolute box-border cursor-pointer pointer-events-auto border-t-2 border-l-2 border-r-2 border-b-0"
+      // Ensure the shape container hides anything that overflows
+      className="absolute box-border cursor-pointer pointer-events-auto border-t-2 border-l-2 border-r-2 border-b-0 overflow-hidden"
       style={containerStyle}
       title={Object.values(group.texts).join(" | ")}
       onClick={(e) => {
@@ -136,47 +135,20 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
       <div style={gridContainerStyle}>
         {Object.keys(group.texts).map((positionKey) => {
           const position = positionKey as keyof MusicalGroup["texts"];
-          const textAlign = getTextAlign(position);
-          const cellStyle: React.CSSProperties = {
-            gridArea: position,
-            textAlign,
-            cursor: editingField === position ? "text" : "pointer",
-            userSelect: "none",
-            padding: "2px",
-          };
-
+          const isEditing = editingField === position;
           return (
-            <div
+            <TextCell
               key={position}
-              style={cellStyle}
-              onClick={(e) => handleTextClick(position, e)}
-              onDoubleClick={(e) => handleTextDoubleClick(position, e)}
-            >
-              {editingField === position ? (
-                <input
-                  type="text"
-                  value={editingValue}
-                  onChange={handleInputChange}
-                  onBlur={finishEditing}
-                  onKeyDown={handleKeyDown}
-                  autoFocus
-                  style={{
-                    width: "100%",
-                    fontSize: "0.875rem",
-                    border: "none",
-                    outline: "none",
-                    padding: 0,
-                    margin: 0,
-                    background: "transparent",
-                    textAlign,
-                  }}
-                />
-              ) : (
-                <span style={{ fontSize: "0.875rem" }}>
-                  {group.texts[position]}
-                </span>
-              )}
-            </div>
+              text={group.texts[position]}
+              isEditing={isEditing}
+              editingValue={editingValue}
+              textPosition={position}
+              onTextClick={handleTextClick}
+              onTextDoubleClick={handleTextDoubleClick}
+              onInputChange={handleInputChange}
+              onFinishEditing={finishEditing}
+              onKeyDown={handleKeyDown}
+            />
           );
         })}
       </div>
@@ -191,3 +163,94 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
 };
 
 export default MusicalGroupComponent;
+
+/**
+ * Extracted the text cell to a sub-component to show how we apply
+ * truncation styles.
+ */
+interface TextCellProps {
+  text: string;
+  isEditing: boolean;
+  editingValue: string;
+  textPosition: keyof MusicalGroup["texts"];
+  onTextClick: (
+    position: keyof MusicalGroup["texts"],
+    e: React.MouseEvent
+  ) => void;
+  onTextDoubleClick: (
+    position: keyof MusicalGroup["texts"],
+    e: React.MouseEvent
+  ) => void;
+  onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFinishEditing: () => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+}
+
+const TextCell: React.FC<TextCellProps> = ({
+  text,
+  isEditing,
+  editingValue,
+  textPosition,
+  onTextClick,
+  onTextDoubleClick,
+  onInputChange,
+  onFinishEditing,
+  onKeyDown,
+}) => {
+  // Decide text alignment based on position name
+  const getTextAlign = (position: string): "left" | "center" | "right" => {
+    if (position.endsWith("Left")) return "left";
+    if (position.endsWith("Right")) return "right";
+    return "center";
+  };
+
+  const textAlign = getTextAlign(textPosition);
+
+  return (
+    <div
+      style={{
+        gridArea: textPosition,
+        textAlign,
+        cursor: isEditing ? "text" : "pointer",
+        userSelect: "none",
+        padding: "2px",
+      }}
+      onClick={(e) => onTextClick(textPosition, e)}
+      onDoubleClick={(e) => onTextDoubleClick(textPosition, e)}
+    >
+      {isEditing ? (
+        <input
+          type="text"
+          value={editingValue}
+          onChange={onInputChange}
+          onBlur={onFinishEditing}
+          onKeyDown={onKeyDown}
+          autoFocus
+          style={{
+            width: "100%",
+            fontSize: "0.875rem",
+            border: "none",
+            outline: "none",
+            padding: 0,
+            margin: 0,
+            background: "transparent",
+            textAlign,
+          }}
+        />
+      ) : (
+        // The Tailwind classes "truncate" automatically set
+        // `white-space: nowrap; overflow: hidden; text-overflow: ellipsis;`
+        // but you must ensure the container has a fixed or max width
+        <span
+          className="block w-full truncate"
+          style={{
+            fontSize: "0.875rem",
+            textAlign,
+          }}
+        >
+          {text}
+        </span>
+      )}
+    </div>
+  );
+};

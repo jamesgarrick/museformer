@@ -362,9 +362,9 @@ const Home = () => {
       </header>
 
       {/* Timeline Section */}
-      <main className="flex-grow flex flex-col gap-1">
+      <main className="flex-grow flex flex-col pl-1 gap-1 bg-gray-300 ">
         {/* Container wrapping both Musical Groups and Timeline */}
-        <div className="relative bg-gray-300 shadow overflow-x-auto overflow-y-hidden flex flex-col flex-grow no-scrollbar">
+        <div className="relative shadow overflow-x-auto overflow-y-hidden flex flex-col flex-grow no-scrollbar">
           {/* Musical Groups Container */}
           <div className="flex-grow" style={{ width: `${containerWidthVW}vw` }}>
             {groups.map((group) => (
