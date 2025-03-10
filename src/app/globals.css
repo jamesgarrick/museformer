@@ -78,3 +78,11 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
 }
+
+@layer utilities {
+  .disabled {
+    opacity: 0.5 !important;
+    pointer-events: none !important;
+    color: #000 !important;
+  }
+}

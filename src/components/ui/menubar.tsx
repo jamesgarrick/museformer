@@ -72,6 +72,7 @@ const MenubarSubTrigger = React.forwardRef<
   React.ElementRef<typeof MenubarPrimitive.SubTrigger>,
   React.ComponentPropsWithoutRef<typeof MenubarPrimitive.SubTrigger> & {
     inset?: boolean;
+    className?: string;
   }
 >(({ className, inset, children, ...props }, ref) => (
   <MenubarPrimitive.SubTrigger
@@ -135,6 +136,7 @@ const MenubarItem = React.forwardRef<
   React.ElementRef<typeof MenubarPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Item> & {
     inset?: boolean;
+    className?: string;
   }
 >(({ className, inset, ...props }, ref) => (
   <MenubarPrimitive.Item
@@ -240,6 +242,70 @@ const MenubarShortcut = ({
 };
 MenubarShortcut.displayname = "MenubarShortcut";
 
+// extra submenu
+interface MenubarContextSubmenuProps
+  extends React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Sub> {
+  trigger: React.ReactNode;
+  children: React.ReactNode;
+  inset?: boolean;
+}
+
+const MenubarContextSubmenu = React.forwardRef<
+  HTMLDivElement,
+  MenubarContextSubmenuProps
+>(({ trigger, children, inset, ...props }, ref) => {
+  const [submenuSide, setSubmenuSide] = React.useState<"left" | "right">(
+    "left"
+  );
+
+  React.useEffect(() => {
+    const updateSide = () => {
+      // Adjust submenu side based on viewport width
+      setSubmenuSide(window.innerWidth < 600 ? "right" : "left");
+    };
+
+    // Initial update
+    updateSide();
+
+    // Add resize listener
+    window.addEventListener("resize", updateSide);
+
+    // Cleanup listener on unmount
+    return () => window.removeEventListener("resize", updateSide);
+  }, []);
+
+  // Determine submenu content positioning based on `submenuSide`
+  const contentStyle = {
+    [submenuSide === "left" ? "right" : "left"]: "100%",
+    [submenuSide === "left" ? "left" : "right"]: "auto",
+  };
+
+  return (
+    <div ref={ref as unknown as React.RefObject<HTMLDivElement>}>
+      <MenubarPrimitive.Sub {...props}>
+        <MenubarPrimitive.SubTrigger
+          className={cn(
+            "flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground",
+            inset && "pl-8"
+          )}
+        >
+          {trigger}
+          <ChevronRight className="ml-auto h-4 w-4" />
+        </MenubarPrimitive.SubTrigger>
+        <MenubarPrimitive.SubContent
+          style={contentStyle}
+          className={cn(
+            "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md"
+          )}
+        >
+          {children}
+        </MenubarPrimitive.SubContent>
+      </MenubarPrimitive.Sub>
+    </div>
+  );
+});
+MenubarContextSubmenu.displayName = "MenubarContextSubmenu";
+
 export {
   Menubar,
   MenubarMenu,
@@ -257,4 +323,5 @@ export {
   MenubarGroup,
   MenubarSub,
   MenubarShortcut,
+  MenubarContextSubmenu,
 };

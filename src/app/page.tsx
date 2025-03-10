@@ -19,6 +19,8 @@ import {
   MenubarMenu,
   MenubarSeparator,
   MenubarTrigger,
+  MenubarContextSubmenu,
+  MenubarShortcut,
 } from "@/components/ui/menubar";
 import Timeline from "@/components/Timeline";
 import MediaControls from "@/components/MediaControls";
@@ -28,6 +30,7 @@ import { ColorButton } from "@/components/ui/ColorButton";
 import { ShapeMenu } from "@/components/ui/ShapeMenu";
 
 import AboutDialog from "@/components/About";
+import { exportTimelineToJson } from "@/utils/exportTimeline";
 
 // Extend your submenu enum:
 enum SubMenu {
@@ -410,8 +413,29 @@ const Home = () => {
             <MenubarTrigger>File</MenubarTrigger>
             <MenubarContent>
               <MenubarItem>New Project</MenubarItem>
+              <MenubarItem className="disabled">Open Project...</MenubarItem>
               <MenubarSeparator />
-              <MenubarItem>Share</MenubarItem>
+              <MenubarItem className="disabled">Close</MenubarItem>
+              <MenubarItem className="disabled">Save</MenubarItem>
+              <MenubarItem className="disabled">Save As...</MenubarItem>
+
+              <MenubarContextSubmenu trigger="Export">
+                <MenubarItem
+                  onClick={() => {
+                    const jsonTimeline = exportTimelineToJson(groups);
+                    navigator.clipboard
+                      .writeText(jsonTimeline)
+                      .then(() => {
+                        alert("Timeline JSON copied to clipboard.");
+                      })
+                      .catch(() => {
+                        alert("Failed to copy timeline JSON.");
+                      });
+                  }}
+                >
+                  Share Link
+                </MenubarItem>
+              </MenubarContextSubmenu>
             </MenubarContent>
           </MenubarMenu>
           <MenubarMenu>
@@ -427,6 +451,17 @@ const Home = () => {
               <MenubarItem>Online Handbook</MenubarItem>
               <MenubarSeparator />
               <MenubarItem>View Logs</MenubarItem>
+              <MenubarContextSubmenu
+                trigger={
+                  <span>
+                    Share <MenubarShortcut>⌘S</MenubarShortcut>
+                  </span>
+                }
+              >
+                <MenubarItem>Email</MenubarItem>
+                <MenubarItem>Messages</MenubarItem>
+                <MenubarItem>Notes</MenubarItem>
+              </MenubarContextSubmenu>
             </MenubarContent>
           </MenubarMenu>
         </Menubar>
