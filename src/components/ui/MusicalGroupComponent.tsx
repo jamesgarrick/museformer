@@ -8,7 +8,8 @@ interface MusicalGroupComponentProps {
   totalDuration: number; // Total timeline duration in seconds
   zoomLevel: number; // Zoom factor (1 = normal, >1 = zoomed in)
   selected?: boolean;
-  onClick?: (id: string) => void;
+  // Updated onClick: now receives (id: string, multiSelect: boolean)
+  onClick?: (id: string, multiSelect: boolean) => void;
   onTextChange?: (
     groupId: string,
     position: keyof MusicalGroup["texts"],
@@ -26,52 +27,46 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
   onClick,
   onTextChange,
 }) => {
-  // Compute the total timeline width in pixels (assuming viewport width is used)
   const timelineWidth = zoomLevel * window.innerWidth;
-  // Compute horizontal positioning in pixels based on zoom.
   const leftPx = (group.startTime / totalDuration) * timelineWidth;
   const widthPx =
     ((group.endTime - group.startTime) / totalDuration) * timelineWidth;
-  // Compute vertical positioning from the group's layer value
   const bottom = (group.layer ?? 0) * LAYER_HEIGHT;
   const height = LAYER_HEIGHT;
 
-  // Local state for which text field is being edited
   const [editingField, setEditingField] = useState<
     keyof MusicalGroup["texts"] | null
   >(null);
   const [editingValue, setEditingValue] = useState("");
-
-  // Ref to help distinguish between single and double tap
   const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Single tap handler on a text cell
   const handleTextClick = (
     position: keyof MusicalGroup["texts"],
     e: React.MouseEvent
   ) => {
     e.stopPropagation();
+    const multiSelect = e.metaKey; // True if Cmd key is pressed
     if (clickTimeoutRef.current) {
       clearTimeout(clickTimeoutRef.current);
     }
     clickTimeoutRef.current = setTimeout(() => {
-      if (onClick) onClick(group.id);
+      if (onClick) onClick(group.id, multiSelect);
       clickTimeoutRef.current = null;
     }, 50);
   };
 
-  // Double tap handler on a text cell
   const handleTextDoubleClick = (
     position: keyof MusicalGroup["texts"],
     e: React.MouseEvent
   ) => {
     e.stopPropagation();
+    const multiSelect = e.metaKey;
     if (clickTimeoutRef.current) {
       clearTimeout(clickTimeoutRef.current);
       clickTimeoutRef.current = null;
     }
     if (selected && onClick) {
-      onClick(group.id);
+      onClick(group.id, multiSelect);
     }
     setEditingField(position);
     setEditingValue(group.texts[position]);
@@ -113,7 +108,6 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     return "center";
   };
 
-  // Base style for the container. By default, we render a 3-sided rectangle.
   const containerStyle: React.CSSProperties = {
     left: `${leftPx}px`,
     width: `${widthPx}px`,
@@ -123,11 +117,10 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     backgroundColor: "transparent",
   };
 
-  // Apply different styling for a "curved" shape.
-  // In this case, we add border radius to the top-left and top-right corners only.
+  // For curved shape, add top corner border radius.
   if (group.shape === "curved") {
-    containerStyle.borderTopLeftRadius = "15px"; // Adjust the value as needed
-    containerStyle.borderTopRightRadius = "15px"; // Adjust the value as needed
+    containerStyle.borderTopLeftRadius = "15px";
+    containerStyle.borderTopRightRadius = "15px";
   }
 
   return (
@@ -137,7 +130,7 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
       title={Object.values(group.texts).join(" | ")}
       onClick={(e) => {
         e.stopPropagation();
-        if (onClick) onClick(group.id);
+        if (onClick) onClick(group.id, e.metaKey);
       }}
     >
       <div style={gridContainerStyle}>

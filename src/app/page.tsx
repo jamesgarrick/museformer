@@ -135,12 +135,17 @@ const Home = () => {
     setCurrentTime(newTime);
   };
 
-  const toggleGroupSelection = (id: string) => {
-    setSelectedGroupIds((prev) =>
-      prev.includes(id) ? prev.filter((gid) => gid !== id) : [...prev, id]
-    );
+  const toggleGroupSelection = (id: string, multiSelect: boolean) => {
+    if (multiSelect) {
+      setSelectedGroupIds((prev) =>
+        prev.includes(id) ? prev.filter((gid) => gid !== id) : [...prev, id]
+      );
+    } else {
+      setSelectedGroupIds((prev) =>
+        prev.length === 1 && prev[0] === id ? [] : [id]
+      );
+    }
   };
-
   const handleTextChange = (
     groupId: string,
     position: keyof MusicalGroup["texts"],
@@ -333,7 +338,7 @@ const Home = () => {
                 group={group}
                 totalDuration={duration}
                 selected={selectedGroupIds.includes(group.id)}
-                onClick={toggleGroupSelection}
+                onClick={toggleGroupSelection} // Now expects (id: string, multiSelect: boolean)
                 onTextChange={handleTextChange}
                 zoomLevel={zoomLevel}
               />
@@ -363,7 +368,7 @@ const Home = () => {
       {/* Bottom Bar */}
       <footer className="border-t flex h-[40vh] bg-gray-100">
         {/* Tools Section */}
-        <div className="flex-none flex flex-col h-full p-4 overflow-y-auto">
+        <div className="flex-none flex flex-col h-full p-4 overflow-y-auto border-r">
           <h2 className="text-lg font-semibold mb-2">Tools</h2>
           <div className="grid grid-cols-2 gap-3 flex-grow min-h-0">
             <TooltipProvider>
@@ -440,7 +445,7 @@ const Home = () => {
         <div className="flex-grow"></div>
 
         {/* Video & Media Controls Section */}
-        <div className="flex-none flex flex-col h-full p-4">
+        <div className="flex-none flex flex-col h-full p-4 border-l">
           <div className="h-full">
             {videoId ? (
               <YouTube
