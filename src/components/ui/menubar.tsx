@@ -118,9 +118,10 @@ const MenubarContent = React.forwardRef<
         ref={ref}
         align={align}
         alignOffset={alignOffset}
-        sideOffset={sideOffset} // sideOffset adjusted to 1 to push it down by 1px.
+        sideOffset={sideOffset}
         className={cn(
-          "z-50 min-w-[12rem] overflow-hidden rounded-sm border bg-popover text-popover-foreground shadow-md",
+          // Key changes: min-w-[8rem] plus w-auto
+          "z-50 min-w-[5rem] w-auto overflow-hidden rounded-sm border bg-popover text-popover-foreground shadow-md",
           className
         )}
         {...props}
