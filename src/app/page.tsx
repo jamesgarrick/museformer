@@ -20,17 +20,18 @@ import {
   MenubarSeparator,
   MenubarTrigger,
 } from "@/components/ui/menubar";
-
 import Timeline from "@/components/Timeline";
 import MediaControls from "@/components/MediaControls";
 import { extractVideoId } from "@/utils/youtube";
 import { splitGroupAtTime, groupSelectedGroups } from "@/utils/musicalGroups";
 import { ColorButton } from "@/components/ui/ColorButton";
+import { ShapeMenu } from "@/components/ui/ShapeMenu";
 
+// Extend your submenu enum:
 enum SubMenu {
   NONE = "NONE",
   COLORS = "COLORS",
-  // Add more if you like, e.g. "SHAPES", "LAYERS", etc.
+  SHAPES = "SHAPES",
 }
 
 type ColorMenuProps = {
@@ -74,10 +75,7 @@ function ColorMenu({ onColorSelect }: ColorMenuProps) {
           key={c.label}
           color={c.color}
           label={c.label}
-          onClick={() => {
-            /* no effect for now */
-            onColorSelect(c.color);
-          }}
+          onClick={() => onColorSelect(c.color)}
         />
       ))}
     </div>
@@ -89,7 +87,7 @@ const Home = () => {
   const [zoomLevel, setZoomLevel] = useState(2);
   const containerWidthVW = zoomLevel * 100; // in vw units
 
-  // State for tracking horizontal scroll offset (in pixels)
+  // Other state variables...
   const [timelineScroll, setTimelineScroll] = useState(0);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [videoId, setVideoId] = useState<string | null>(null);
@@ -103,27 +101,22 @@ const Home = () => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [innerWidth, setInnerWidth] = useState(0);
 
-  // sub menu
+  // Submenu state
   const [activeSubMenu, setActiveSubMenu] = useState<SubMenu>(SubMenu.NONE);
 
-  // Zoom controls: Increase zoom with "=" or "+"; decrease with "-" or "_"
+  // Zoom controls...
   useEffect(() => {
-    // for client
     setInnerWidth(window.innerWidth);
-
     const handleZoom = (e: KeyboardEvent) => {
       const active = document.activeElement as HTMLElement;
       if (
         active &&
         (active.tagName === "INPUT" || active.tagName === "TEXTAREA")
-      ) {
+      )
         return;
-      }
-      if (e.key === "=" || e.key === "+") {
-        setZoomLevel((prev) => prev + 0.25);
-      } else if (e.key === "-" || e.key === "_") {
+      if (e.key === "=" || e.key === "+") setZoomLevel((prev) => prev + 0.25);
+      else if (e.key === "-" || e.key === "_")
         setZoomLevel((prev) => Math.max(0.5, prev - 0.25));
-      }
     };
     window.addEventListener("keydown", handleZoom);
     return () => window.removeEventListener("keydown", handleZoom);
@@ -131,9 +124,7 @@ const Home = () => {
 
   const handleColorSelect = useCallback(
     (color: string) => {
-      // If no group is selected, do nothing.
       if (selectedGroupIds.length === 0) return;
-
       setGroups((prevGroups) =>
         prevGroups.map((group) =>
           selectedGroupIds.includes(group.id) ? { ...group, color } : group
@@ -143,14 +134,23 @@ const Home = () => {
     [selectedGroupIds]
   );
 
+  const handleShapeSelect = useCallback(
+    (shape: string) => {
+      if (selectedGroupIds.length === 0) return;
+      setGroups((prevGroups) =>
+        prevGroups.map((group) =>
+          selectedGroupIds.includes(group.id) ? { ...group, shape } : group
+        )
+      );
+    },
+    [selectedGroupIds]
+  );
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const id = extractVideoId(youtubeUrl);
-    if (id) {
-      setVideoId(id);
-    } else {
-      alert("Please enter a valid YouTube URL");
-    }
+    if (id) setVideoId(id);
+    else alert("Please enter a valid YouTube URL");
   };
 
   const onPlayerReady: YouTubeProps["onReady"] = (event) => {
@@ -189,8 +189,7 @@ const Home = () => {
   };
 
   const onPlayerStateChange: YouTubeProps["onStateChange"] = (event) => {
-    const state = event.data;
-    setIsPlaying(state === 1);
+    setIsPlaying(event.data === 1);
   };
 
   useEffect(() => {
@@ -204,23 +203,22 @@ const Home = () => {
     const rect = timelineRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const totalWidth = zoomLevel * innerWidth;
-    // Adjust click position with scroll offset
     const newTime = ((clickX + timelineScroll) / totalWidth) * duration;
     player.seekTo(newTime, true);
     setCurrentTime(newTime);
   };
 
   const toggleGroupSelection = (id: string, multiSelect: boolean) => {
-    if (multiSelect) {
+    if (multiSelect)
       setSelectedGroupIds((prev) =>
         prev.includes(id) ? prev.filter((gid) => gid !== id) : [...prev, id]
       );
-    } else {
+    else
       setSelectedGroupIds((prev) =>
         prev.length === 1 && prev[0] === id ? [] : [id]
       );
-    }
   };
+
   const handleTextChange = (
     groupId: string,
     position: keyof MusicalGroup["texts"],
@@ -242,7 +240,6 @@ const Home = () => {
   }, [player, duration, groups, currentTime]);
 
   const handleGroupSelected = useCallback(() => {
-    // Require at least 2 groups to be selected.
     if (selectedGroupIds.length < 2) {
       alert("Please select at least two groups to group them.");
       return;
@@ -292,7 +289,6 @@ const Home = () => {
     setSelectedGroupIds([]);
   };
 
-  // Media control handlers
   const handleBeginning = () => {
     if (player) {
       player.seekTo(0, true);
@@ -334,19 +330,15 @@ const Home = () => {
     }
   };
 
-  // Key handler for group splitting, grouping, and pausing video with space.
   useEffect(() => {
     const keyHandler = (e: KeyboardEvent) => {
       const active = document.activeElement as HTMLElement;
-      // Skip if focused on input/textarea.
       if (
         active &&
         (active.tagName === "INPUT" || active.tagName === "TEXTAREA")
       ) {
         return;
       }
-
-      // Toggle play/pause on space.
       if (e.key === " " || e.code === "Space") {
         if (!active || active.tagName.toLowerCase() !== "iframe") {
           e.preventDefault();
@@ -359,27 +351,17 @@ const Home = () => {
             }
           }
         }
-      }
-      // Rewind 10 seconds on left arrow.
-      else if (e.key === "ArrowLeft") {
+      } else if (e.key === "ArrowLeft") {
         if (!active || active.tagName.toLowerCase() !== "iframe") {
           e.preventDefault();
-          if (player) {
-            handleRewind();
-          }
+          if (player) handleRewind();
         }
-      }
-      // Forward 10 seconds on right arrow.
-      else if (e.key === "ArrowRight") {
+      } else if (e.key === "ArrowRight") {
         if (!active || active.tagName.toLowerCase() !== "iframe") {
           e.preventDefault();
-          if (player) {
-            handleForward();
-          }
+          if (player) handleForward();
         }
-      }
-      // Other keybinds.
-      else if (e.key === "s" || e.key === "S") {
+      } else if (e.key === "s" || e.key === "S") {
         handleSplitGroup();
       } else if (e.key === "g" || e.key === "G") {
         handleGroupSelected();
@@ -396,7 +378,6 @@ const Home = () => {
     handleGroupSelected,
   ]);
 
-  // Compute total timeline width (in pixels) and playhead position
   const totalTimelineWidth = zoomLevel * innerWidth;
   const playheadAbsolute = duration
     ? (currentTime / duration) * totalTimelineWidth
@@ -442,9 +423,7 @@ const Home = () => {
 
       {/* Timeline Section */}
       <main className="flex-grow flex flex-col pl-1 gap-1 bg-gray-300 ">
-        {/* Container wrapping both Musical Groups and Timeline */}
         <div className="relative shadow overflow-x-auto overflow-y-hidden flex flex-col flex-grow no-scrollbar">
-          {/* Musical Groups Container */}
           <div className="flex-grow" style={{ width: `${containerWidthVW}vw` }}>
             {groups.map((group) => (
               <MusicalGroupComponent
@@ -452,13 +431,12 @@ const Home = () => {
                 group={group}
                 totalDuration={duration}
                 selected={selectedGroupIds.includes(group.id)}
-                onClick={toggleGroupSelection} // Now expects (id: string, multiSelect: boolean)
+                onClick={toggleGroupSelection}
                 onTextChange={handleTextChange}
                 zoomLevel={zoomLevel}
               />
             ))}
           </div>
-          {/* Timeline Bar Container (pushed to bottom) */}
           <div
             ref={timelineRef}
             className="relative overflow-x-auto"
@@ -470,7 +448,6 @@ const Home = () => {
               duration={duration}
               onTimelineClick={handleTimelineClick}
             />
-            {/* Playhead Overlay */}
             <div
               className="absolute top-0 h-4 w-1 bg-red-500"
               style={{ left: playheadLeft }}
@@ -502,6 +479,26 @@ const Home = () => {
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>C</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full flex-1 min-h-0"
+                    onClick={() =>
+                      setActiveSubMenu((prev) =>
+                        prev === SubMenu.SHAPES ? SubMenu.NONE : SubMenu.SHAPES
+                      )
+                    }
+                  >
+                    Shapes
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Sh</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -553,13 +550,6 @@ const Home = () => {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            <Button
-              variant="outline"
-              className="w-full flex-1 min-h-0"
-              disabled
-            >
-              Shapes
-            </Button>
           </div>
         </div>
 
@@ -567,9 +557,11 @@ const Home = () => {
           {activeSubMenu === SubMenu.COLORS && (
             <ColorMenu onColorSelect={handleColorSelect} />
           )}
+          {activeSubMenu === SubMenu.SHAPES && (
+            <ShapeMenu onShapeSelect={handleShapeSelect} />
+          )}
         </div>
 
-        {/* Video & Media Controls Section */}
         <div className="flex-none flex flex-col h-full p-4 border-l">
           <div className="h-full">
             {videoId ? (

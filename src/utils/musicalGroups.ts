@@ -51,7 +51,7 @@ export function groupSelectedGroups(
 ): MusicalGroup[] {
   if (selectedIds.length === 0) return groups;
 
-  // Check if a higher group already exists that contains exactly the selected groups.
+  // First, check if an exact grouping already exists.
   const selectedSet = new Set(selectedIds);
   const existingGroup = groups.find(
     (g) =>
@@ -79,12 +79,11 @@ export function groupSelectedGroups(
     console.log("New grouping boundaries:", { minStart, maxEnd });
   }
 
-  // Look for any parent group (a group with children) that has a boundary
-  // (start or end) strictly within the new grouping span.
+  // Look for interfering parent groups (those with children) whose boundaries fall within
+  // the new span, but only consider those that are NOT already selected.
   const interferingParents = groups.filter((g) => {
     if (!g.children || g.children.length === 0) return false;
-    // If a parent's startTime or endTime falls between minStart and maxEnd,
-    // then it interferes.
+    if (selectedIds.includes(g.id)) return false; // ignore if already selected
     return (
       (g.startTime > minStart && g.startTime < maxEnd) ||
       (g.endTime > minStart && g.endTime < maxEnd)
@@ -102,7 +101,53 @@ export function groupSelectedGroups(
     return groups;
   }
 
-  // Otherwise, create a new grouping.
+  // If there is at least one candidate parent already containing all selected groups, use it.
+  const candidateParents = groups.filter((g) => {
+    if (!g.children || g.children.length === 0) return false;
+    const childIds = g.children.map((child) => child.id);
+    return selectedGroups.every((sg) => childIds.includes(sg.id));
+  });
+
+  if (candidateParents.length > 0) {
+    candidateParents.sort(
+      (a, b) => a.endTime - a.startTime - (b.endTime - b.startTime)
+    );
+    const candidate = candidateParents[0];
+    if (DEBUG) {
+      console.log("Using candidate parent:", candidate);
+    }
+    const newGroup: MusicalGroup = {
+      id: Date.now().toString() + Math.random().toString(36).substring(2),
+      startTime: minStart,
+      endTime: maxEnd,
+      shape: "rectangle",
+      color: "transparent",
+      texts: {
+        topLeft: "",
+        topMiddle: "",
+        topRight: "",
+        middleLeft: "",
+        middleMiddle: "",
+        middleRight: "",
+        bottomLeft: "",
+        bottomMiddle: "",
+        bottomRight: "",
+      },
+      children: selectedGroups,
+      layer: candidate.layer,
+    };
+    candidate.children = candidate.children!.filter(
+      (child) => !selectedIds.includes(child.id)
+    );
+    candidate.children.push(newGroup);
+    candidate.layer = (candidate.layer ?? 0) + 1;
+    if (DEBUG) {
+      console.log("Created new group under candidate parent:", newGroup);
+    }
+    return [...groups, newGroup].sort((a, b) => a.startTime - b.startTime);
+  }
+
+  // If no candidate parent exists, create a new standalone group.
   const maxSelectedLayer = Math.max(...selectedGroups.map((g) => g.layer ?? 0));
   const newGroup: MusicalGroup = {
     id: Date.now().toString() + Math.random().toString(36).substring(2),
@@ -124,10 +169,8 @@ export function groupSelectedGroups(
     children: selectedGroups,
     layer: maxSelectedLayer + 1,
   };
-
   if (DEBUG) {
     console.log("Created new standalone group:", newGroup);
   }
-
   return [...groups, newGroup].sort((a, b) => a.startTime - b.startTime);
 }
