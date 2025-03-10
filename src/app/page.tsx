@@ -27,6 +27,8 @@ import { splitGroupAtTime, groupSelectedGroups } from "@/utils/musicalGroups";
 import { ColorButton } from "@/components/ui/ColorButton";
 import { ShapeMenu } from "@/components/ui/ShapeMenu";
 
+import AboutDialog from "@/components/About";
+
 // Extend your submenu enum:
 enum SubMenu {
   NONE = "NONE",
@@ -103,6 +105,9 @@ const Home = () => {
 
   // Submenu state
   const [activeSubMenu, setActiveSubMenu] = useState<SubMenu>(SubMenu.NONE);
+
+  // header
+  const [showAbout, setShowAbout] = useState(false);
 
   // Zoom controls...
   useEffect(() => {
@@ -392,9 +397,15 @@ const Home = () => {
           <MenubarMenu>
             <MenubarTrigger className="font-bold">Museformer</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem>Settings</MenubarItem>
+              <MenubarItem onClick={() => setShowAbout(true)}>
+                About Museformer
+              </MenubarItem>
+              <MenubarSeparator />
+              <MenubarItem>Preferences...</MenubarItem>
             </MenubarContent>
           </MenubarMenu>
+          <AboutDialog open={showAbout} onOpenChange={setShowAbout} />
+
           <MenubarMenu>
             <MenubarTrigger>File</MenubarTrigger>
             <MenubarContent>
