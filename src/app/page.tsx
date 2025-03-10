@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import YouTube, { YouTubeProps } from "react-youtube";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -160,18 +160,18 @@ const Home = () => {
     );
   };
 
-  const handleSplitGroup = () => {
+  const handleSplitGroup = useCallback(() => {
     if (!player || duration === 0) return;
     const newGroups = splitGroupAtTime(groups, currentTime);
     setGroups(newGroups);
-  };
+  }, [player, duration, groups, currentTime]);
 
-  const handleGroupSelected = () => {
+  const handleGroupSelected = useCallback(() => {
     if (selectedGroupIds.length === 0) return;
     const newGroups = groupSelectedGroups(groups, selectedGroupIds);
     setGroups(newGroups);
     setSelectedGroupIds([]);
-  };
+  }, [groups, selectedGroupIds]);
 
   const handleDeleteGroup = () => {
     if (selectedGroupIds.length !== 1) return;
@@ -213,46 +213,11 @@ const Home = () => {
     setSelectedGroupIds([]);
   };
 
-  // Key handler for group splitting and grouping (s and g keys)
-  useEffect(() => {
-    const keyHandler = (e: KeyboardEvent) => {
-      const active = document.activeElement as HTMLElement;
-      if (
-        active &&
-        (active.tagName === "INPUT" || active.tagName === "TEXTAREA")
-      ) {
-        return;
-      }
-      if (e.key === "s" || e.key === "S") {
-        handleSplitGroup();
-      } else if (e.key === "g" || e.key === "G") {
-        handleGroupSelected();
-      }
-    };
-    document.addEventListener("keydown", keyHandler);
-    return () => document.removeEventListener("keydown", keyHandler);
-  }, [
-    groups,
-    selectedGroupIds,
-    currentTime,
-    duration,
-    handleGroupSelected,
-    handleSplitGroup,
-  ]);
-
   // Media control handlers
   const handleBeginning = () => {
     if (player) {
       player.seekTo(0, true);
       setCurrentTime(0);
-    }
-  };
-
-  const handleRewind = () => {
-    if (player) {
-      const newTime = Math.max(0, currentTime - 10);
-      player.seekTo(newTime, true);
-      setCurrentTime(newTime);
     }
   };
 
@@ -267,13 +232,21 @@ const Home = () => {
     }
   };
 
-  const handleForward = () => {
+  const handleRewind = useCallback(() => {
+    if (player) {
+      const newTime = Math.max(0, currentTime - 10);
+      player.seekTo(newTime, true);
+      setCurrentTime(newTime);
+    }
+  }, [player, currentTime]);
+
+  const handleForward = useCallback(() => {
     if (player) {
       const newTime = Math.min(duration, currentTime + 10);
       player.seekTo(newTime, true);
       setCurrentTime(newTime);
     }
-  };
+  }, [player, currentTime, duration]);
 
   const handleEnd = () => {
     if (player) {
@@ -281,6 +254,68 @@ const Home = () => {
       setCurrentTime(duration);
     }
   };
+
+  // Key handler for group splitting, grouping, and pausing video with space.
+  useEffect(() => {
+    const keyHandler = (e: KeyboardEvent) => {
+      const active = document.activeElement as HTMLElement;
+      // Skip if focused on input/textarea.
+      if (
+        active &&
+        (active.tagName === "INPUT" || active.tagName === "TEXTAREA")
+      ) {
+        return;
+      }
+
+      // Toggle play/pause on space.
+      if (e.key === " " || e.code === "Space") {
+        if (!active || active.tagName.toLowerCase() !== "iframe") {
+          e.preventDefault();
+          if (player) {
+            const state = player.getPlayerState();
+            if (state === 1) {
+              player.pauseVideo();
+            } else {
+              player.playVideo();
+            }
+          }
+        }
+      }
+      // Rewind 10 seconds on left arrow.
+      else if (e.key === "ArrowLeft") {
+        if (!active || active.tagName.toLowerCase() !== "iframe") {
+          e.preventDefault();
+          if (player) {
+            handleRewind();
+          }
+        }
+      }
+      // Forward 10 seconds on right arrow.
+      else if (e.key === "ArrowRight") {
+        if (!active || active.tagName.toLowerCase() !== "iframe") {
+          e.preventDefault();
+          if (player) {
+            handleForward();
+          }
+        }
+      }
+      // Other keybinds.
+      else if (e.key === "s" || e.key === "S") {
+        handleSplitGroup();
+      } else if (e.key === "g" || e.key === "G") {
+        handleGroupSelected();
+      }
+    };
+
+    document.addEventListener("keydown", keyHandler);
+    return () => document.removeEventListener("keydown", keyHandler);
+  }, [
+    player,
+    handleRewind,
+    handleForward,
+    handleSplitGroup,
+    handleGroupSelected,
+  ]);
 
   // Compute total timeline width (in pixels) and playhead position
   const totalTimelineWidth = zoomLevel * innerWidth;
