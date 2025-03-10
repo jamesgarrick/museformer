@@ -441,16 +441,20 @@ const Home = () => {
           <MenubarMenu>
             <MenubarTrigger>Edit</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem>Undo</MenubarItem>
-              <MenubarItem>Redo</MenubarItem>
+              <MenubarItem className="disabled">Undo</MenubarItem>
+              <MenubarItem className="disabled">Redo</MenubarItem>
+              <MenubarSeparator />
+              <MenubarItem className="disabled">Cut</MenubarItem>
+              <MenubarItem className="disabled">Copy</MenubarItem>
+              <MenubarItem className="disabled">Paste</MenubarItem>
             </MenubarContent>
           </MenubarMenu>
           <MenubarMenu>
             <MenubarTrigger>Help</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem>Online Handbook</MenubarItem>
+              <MenubarItem className="disabled">Online Handbook</MenubarItem>
               <MenubarSeparator />
-              <MenubarItem>View Logs</MenubarItem>
+              <MenubarItem className="disabled">View Logs</MenubarItem>
               <MenubarContextSubmenu
                 trigger={
                   <span>
