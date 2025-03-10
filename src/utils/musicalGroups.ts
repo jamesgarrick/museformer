@@ -51,6 +51,21 @@ export function groupSelectedGroups(
 ): MusicalGroup[] {
   if (selectedIds.length === 0) return groups;
 
+  // Check if a higher group already exists that contains exactly the selected groups.
+  const selectedSet = new Set(selectedIds);
+  const existingGroup = groups.find(
+    (g) =>
+      g.children &&
+      g.children.length === selectedIds.length &&
+      g.children.every((child) => selectedSet.has(child.id))
+  );
+  if (existingGroup) {
+    alert(
+      "There is already a higher group that only contains the selected groups (1)"
+    );
+    return groups;
+  }
+
   const selectedGroups = groups.filter((g) => selectedIds.includes(g.id));
   if (selectedGroups.length === 0) return groups;
 

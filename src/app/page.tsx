@@ -567,7 +567,6 @@ const Home = () => {
           {activeSubMenu === SubMenu.COLORS && (
             <ColorMenu onColorSelect={handleColorSelect} />
           )}
-          ]
         </div>
 
         {/* Video & Media Controls Section */}
