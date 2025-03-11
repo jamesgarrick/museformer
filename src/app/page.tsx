@@ -171,7 +171,7 @@ const Home = () => {
         id: "parent-group",
         startTime: 0,
         endTime: videoDuration,
-        shape: "curved",
+        shape: "curve",
         color: "transparent",
         texts: {
           topLeft: "",

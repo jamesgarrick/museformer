@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import { MusicalGroup } from "@/interfaces/MusicalGroup";
+import { getShapeStyle } from "@/utils/shapes";
 
 interface MusicalGroupComponentProps {
   group: MusicalGroup;
@@ -88,23 +89,23 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     }
   };
 
-  // Make the parent container hide overflow so text can't bleed outside
-  const containerStyle: React.CSSProperties = {
+  // Base style for position, sizing, and background.
+  const baseStyle: React.CSSProperties = {
     left: `${leftPx}px`,
     width: `${widthPx}px`,
     bottom: `${bottom}px`,
     height: `${height}px`,
-    borderColor: "black",
     backgroundColor: group.color,
   };
 
-  if (group.shape === "curved") {
-    containerStyle.borderTopLeftRadius = "15px";
-    containerStyle.borderTopRightRadius = "15px";
-  }
+  // Combine the base style with shape-specific styles.
+  const containerStyle: React.CSSProperties = {
+    ...baseStyle,
+    ...getShapeStyle(group.shape),
+    overflow: "hidden", // Ensure inner content doesn't bleed
+  };
 
-  // Each cell is 1/3 the container's width/height, but we must ensure it can
-  // actually truncate. We'll rely on a "truncate" approach in the <span>.
+  // Grid container remains unchanged.
   const gridContainerStyle: React.CSSProperties = {
     display: "grid",
     gridTemplateAreas: `
@@ -116,15 +117,11 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
     gridTemplateRows: "1fr 1fr 1fr",
     width: "100%",
     height: "100%",
-    // Optional: you can also add `overflow: hidden;` here if you want
-    // to ensure each cell doesn't overflow. But typically the parent
-    // container is enough if it has a set width and `overflow: hidden`.
   };
 
   return (
     <div
-      // Ensure the shape container hides anything that overflows
-      className="absolute box-border cursor-pointer pointer-events-auto border-t-2 border-l-2 border-r-2 border-b-0 overflow-hidden"
+      className="absolute box-border cursor-pointer pointer-events-auto overflow-hidden"
       style={containerStyle}
       title={Object.values(group.texts).join(" | ")}
       onClick={(e) => {
@@ -165,8 +162,7 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
 export default MusicalGroupComponent;
 
 /**
- * Extracted the text cell to a sub-component to show how we apply
- * truncation styles.
+ * The TextCell sub-component remains unchanged.
  */
 interface TextCellProps {
   text: string;
@@ -197,7 +193,6 @@ const TextCell: React.FC<TextCellProps> = ({
   onFinishEditing,
   onKeyDown,
 }) => {
-  // Decide text alignment based on position name
   const getTextAlign = (position: string): "left" | "center" | "right" => {
     if (position.endsWith("Left")) return "left";
     if (position.endsWith("Right")) return "right";
@@ -238,9 +233,6 @@ const TextCell: React.FC<TextCellProps> = ({
           }}
         />
       ) : (
-        // The Tailwind classes "truncate" automatically set
-        // `white-space: nowrap; overflow: hidden; text-overflow: ellipsis;`
-        // but you must ensure the container has a fixed or max width
         <span
           className="block w-full truncate"
           style={{
