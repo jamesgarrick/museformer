@@ -91,7 +91,7 @@ function ColorMenu({ onColorSelect }: ColorMenuProps) {
 const Home = () => {
   const { setTheme } = useTheme();
   useEffect(() => {
-    setTheme("system");
+    setTheme("dark");
   }, [setTheme]);
 
   // Zoom level as a reactive variable; 2 means 200vw, etc.
@@ -420,12 +420,22 @@ const Home = () => {
           <MenubarMenu>
             <MenubarTrigger className="text-foreground">File</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem>New Project</MenubarItem>
-              <MenubarItem className="disabled">Open Project...</MenubarItem>
+              <MenubarItem className="text-foreground disabled">
+                New Project
+              </MenubarItem>
+              <MenubarItem className="text-foreground disabled">
+                Open Project...
+              </MenubarItem>
               <MenubarSeparator />
-              <MenubarItem className="disabled">Close</MenubarItem>
-              <MenubarItem className="disabled">Save</MenubarItem>
-              <MenubarItem className="disabled">Save As...</MenubarItem>
+              <MenubarItem className="text-foreground disabled">
+                Close
+              </MenubarItem>
+              <MenubarItem className="text-foreground disabled">
+                Save
+              </MenubarItem>
+              <MenubarItem className="text-foreground disabled">
+                Save As...
+              </MenubarItem>
 
               <MenubarContextSubmenu trigger="Export">
                 <MenubarItem
@@ -449,8 +459,12 @@ const Home = () => {
           <MenubarMenu>
             <MenubarTrigger className="text-foreground">Edit</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem className="disabled">Undo</MenubarItem>
-              <MenubarItem className="disabled">Redo</MenubarItem>
+              <MenubarItem className="disabled">
+                Undo <MenubarShortcut className="px-4">ctrl+z</MenubarShortcut>
+              </MenubarItem>
+              <MenubarItem className="disabled">
+                Redo <MenubarShortcut className="px-4">ctrl+r</MenubarShortcut>
+              </MenubarItem>
               <MenubarSeparator />
               <MenubarItem className="disabled">Cut</MenubarItem>
               <MenubarItem className="disabled">Copy</MenubarItem>
@@ -463,17 +477,6 @@ const Home = () => {
               <MenubarItem className="disabled">Online Handbook</MenubarItem>
               <MenubarSeparator />
               <MenubarItem className="disabled">View Logs</MenubarItem>
-              <MenubarContextSubmenu
-                trigger={
-                  <span>
-                    Share <MenubarShortcut>⌘S</MenubarShortcut>
-                  </span>
-                }
-              >
-                <MenubarItem>Email</MenubarItem>
-                <MenubarItem>Messages</MenubarItem>
-                <MenubarItem>Notes</MenubarItem>
-              </MenubarContextSubmenu>
             </MenubarContent>
           </MenubarMenu>
         </Menubar>

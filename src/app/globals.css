@@ -91,8 +91,7 @@ body {
 
 @layer utilities {
   .disabled {
-    opacity: 0.5 !important;
+    opacity: 0.6 !important;
     pointer-events: none !important;
-    color: #000 !important;
   }
 }

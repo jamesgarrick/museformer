@@ -41,7 +41,9 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ open, onOpenChange }) => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Close</AlertDialogCancel>
+            <AlertDialogCancel className="hover:bg-card">
+              Close
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialogPortal>
