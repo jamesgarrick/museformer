@@ -24,10 +24,10 @@ export const ShapeButton: React.FC<ShapeButtonProps> = ({
 
   // If a lineStyleOverride is provided, override all border styles
   if (lineStyleOverride) {
-    shapeStyle.borderTop = `2px ${lineStyleOverride} black`;
-    shapeStyle.borderRight = `2px ${lineStyleOverride} black`;
-    shapeStyle.borderBottom = `2px ${lineStyleOverride} black`;
-    shapeStyle.borderLeft = `2px ${lineStyleOverride} black`;
+    shapeStyle.borderTop = `2px ${lineStyleOverride} var(--foreground)`;
+    shapeStyle.borderRight = `2px ${lineStyleOverride} var(--foreground)`;
+    shapeStyle.borderBottom = `2px ${lineStyleOverride} var(--foreground)`;
+    shapeStyle.borderLeft = `2px ${lineStyleOverride} var(--foreground)`;
   }
 
   return (
@@ -40,7 +40,7 @@ export const ShapeButton: React.FC<ShapeButtonProps> = ({
       {/* Top 2/3: shape preview */}
       <div
         style={{ flex: 2, ...shapeStyle }}
-        className="grow flex items-center justify-center m-2"
+        className="grow flex items-center justify-center m-2 !border-foreground"
       >
         {/* Optional additional content */}
       </div>
