@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import MusicalGroupComponent from "@/components/ui/MusicalGroupComponent";
 import { MusicalGroup } from "@/interfaces/MusicalGroup";
+import { useTheme } from "next-themes";
 import {
   Tooltip,
   TooltipContent,
@@ -88,6 +89,11 @@ function ColorMenu({ onColorSelect }: ColorMenuProps) {
 }
 
 const Home = () => {
+  const { setTheme } = useTheme();
+  useEffect(() => {
+    setTheme("system");
+  }, [setTheme]);
+
   // Zoom level as a reactive variable; 2 means 200vw, etc.
   const [zoomLevel, setZoomLevel] = useState(2);
   const containerWidthVW = zoomLevel * 100; // in vw units
