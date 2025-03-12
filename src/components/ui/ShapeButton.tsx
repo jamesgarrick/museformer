@@ -1,4 +1,3 @@
-// File: src/components/ui/ShapeButton.tsx
 "use client";
 
 import React from "react";
@@ -10,6 +9,7 @@ interface ShapeButtonProps {
   label: string;
   onClick?: () => void;
   className?: string;
+  lineStyleOverride?: "solid" | "dashed";
 }
 
 export const ShapeButton: React.FC<ShapeButtonProps> = ({
@@ -17,9 +17,18 @@ export const ShapeButton: React.FC<ShapeButtonProps> = ({
   label,
   onClick,
   className = "",
+  lineStyleOverride,
 }) => {
-  // Get the style for the shape
-  const shapeStyle = getShapeStyle(shape);
+  // Get the style for the shape (clone it so we don't mutate the original)
+  const shapeStyle = { ...getShapeStyle(shape) };
+
+  // If a lineStyleOverride is provided, override all border styles
+  if (lineStyleOverride) {
+    shapeStyle.borderTop = `2px ${lineStyleOverride} black`;
+    shapeStyle.borderRight = `2px ${lineStyleOverride} black`;
+    shapeStyle.borderBottom = `2px ${lineStyleOverride} black`;
+    shapeStyle.borderLeft = `2px ${lineStyleOverride} black`;
+  }
 
   return (
     <Button
@@ -33,7 +42,7 @@ export const ShapeButton: React.FC<ShapeButtonProps> = ({
         style={{ flex: 2, ...shapeStyle }}
         className="grow flex items-center justify-center m-2"
       >
-        {/* You can add additional content here if needed */}
+        {/* Optional additional content */}
       </div>
       {/* Bottom 1/3: label */}
       <div
