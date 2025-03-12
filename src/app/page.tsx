@@ -91,7 +91,7 @@ function ColorMenu({ onColorSelect }: ColorMenuProps) {
 const Home = () => {
   const { setTheme } = useTheme();
   useEffect(() => {
-    setTheme("dark");
+    setTheme("system");
   }, [setTheme]);
 
   // Zoom level as a reactive variable; 2 means 200vw, etc.
@@ -652,7 +652,7 @@ const Home = () => {
                   onChange={(e) => setYoutubeUrl(e.target.value)}
                   className="w-full"
                 />
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full" variant="default">
                   Load Video
                 </Button>
               </form>

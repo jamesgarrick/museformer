@@ -22,7 +22,7 @@ const Timeline: React.FC<TimelineProps> = ({ zoomLevel, onTimelineClick }) => {
     <div
       onClick={onTimelineClick}
       style={{ width: totalWidth }}
-      className="h-4 bg-gray-300 cursor-pointer"
+      className="h-4 border bg-card cursor-pointer"
     >
       {/* Timeline background (can be extended with markers or grid lines) */}
     </div>
