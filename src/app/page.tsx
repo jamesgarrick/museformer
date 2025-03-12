@@ -32,6 +32,7 @@ import { ShapeMenu } from "@/components/ui/ShapeMenu";
 
 import AboutDialog from "@/components/About";
 import { exportTimelineToJson } from "@/utils/exportTimeline";
+import SaveProjectDialog from "@/components/SaveProjectDialog";
 
 // Extend your submenu enum:
 enum SubMenu {
@@ -92,6 +93,8 @@ const Home = () => {
   const { setTheme } = useTheme();
 
   const [activeTheme, setActiveTheme] = useState("system");
+  const [projectName, setProjectName] = useState("Untitled Project");
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
   // Zoom level as a reactive variable; 2 means 200vw, etc.
   const [zoomLevel, setZoomLevel] = useState(2);
@@ -117,44 +120,74 @@ const Home = () => {
   // header
   const [showAbout, setShowAbout] = useState(false);
 
+  // Restore session on mount.
+  // Instead of storing the current project in a separate key,
+  // we load all projects from "museformer_projects" and choose the one with the most recent lastEdited.
   useEffect(() => {
-    // Restore saved session
-    const savedSession = localStorage.getItem("museformer_session");
-    if (savedSession) {
+    const projectsStr = localStorage.getItem("museformer_projects");
+    if (projectsStr) {
       try {
-        const sessionData = JSON.parse(savedSession);
-        if (sessionData.groups) setGroups(sessionData.groups);
-        if (sessionData.videoId) setVideoId(sessionData.videoId);
-        if (sessionData.youtubeUrl) setYoutubeUrl(sessionData.youtubeUrl);
-        if (sessionData.timelineScroll)
-          setTimelineScroll(sessionData.timelineScroll);
-        if (sessionData.zoomLevel) setZoomLevel(sessionData.zoomLevel);
-        if (sessionData.activeTheme) {
-          setActiveTheme(sessionData.activeTheme);
-          setTheme(sessionData.activeTheme);
+        const allProjects = JSON.parse(projectsStr);
+        let mostRecentProject = null;
+        let mostRecentTimestamp = 0;
+        for (const key in allProjects) {
+          const proj = allProjects[key];
+          if (proj.lastEdited) {
+            const timestamp = new Date(proj.lastEdited).getTime();
+            if (timestamp > mostRecentTimestamp) {
+              mostRecentTimestamp = timestamp;
+              mostRecentProject = proj;
+            }
+          }
+        }
+        if (mostRecentProject) {
+          setProjectName(mostRecentProject.projectName);
+          if (mostRecentProject.groups) setGroups(mostRecentProject.groups);
+          if (mostRecentProject.videoId) setVideoId(mostRecentProject.videoId);
+          if (mostRecentProject.youtubeUrl)
+            setYoutubeUrl(mostRecentProject.youtubeUrl);
+          if (mostRecentProject.timelineScroll)
+            setTimelineScroll(mostRecentProject.timelineScroll);
+          if (mostRecentProject.zoomLevel)
+            setZoomLevel(mostRecentProject.zoomLevel);
+          if (mostRecentProject.activeTheme) {
+            setActiveTheme(mostRecentProject.activeTheme);
+            setTheme(mostRecentProject.activeTheme);
+          }
         }
       } catch (error) {
-        console.error("Error parsing saved session:", error);
+        console.error("Error parsing saved projects:", error);
       }
-    } else {
-      // If nothing is saved, default to "system"
-      setActiveTheme("system");
-      setTheme("system");
     }
-  }, []); // Run only once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Save session to localStorage when any of these state changes
+  // Save session: update the current project in "museformer_projects".
   useEffect(() => {
-    const sessionData = {
+    const allProjects = JSON.parse(
+      localStorage.getItem("museformer_projects") || "{}"
+    );
+    const currentProjectData = {
       groups,
       videoId,
       youtubeUrl,
       timelineScroll,
       zoomLevel,
-      activeTheme, // store the current theme value
+      activeTheme,
+      projectName,
+      lastEdited: new Date().toISOString(),
     };
-    localStorage.setItem("museformer_session", JSON.stringify(sessionData));
-  }, [groups, videoId, youtubeUrl, timelineScroll, zoomLevel, activeTheme]);
+    allProjects[projectName] = currentProjectData;
+    localStorage.setItem("museformer_projects", JSON.stringify(allProjects));
+  }, [
+    groups,
+    videoId,
+    youtubeUrl,
+    timelineScroll,
+    zoomLevel,
+    activeTheme,
+    projectName,
+  ]);
 
   // Zoom controls...
   useEffect(() => {
@@ -306,6 +339,19 @@ const Home = () => {
     const idToDelete = selectedGroupIds[0];
     const groupToDelete = groups.find((g) => g.id === idToDelete);
     if (!groupToDelete) return;
+
+    // Check if this group is a child of any other group.
+    const parentGroup = groups.find(
+      (g) => g.children && g.children.some((child) => child.id === idToDelete)
+    );
+    if (parentGroup) {
+      alert(
+        "This subgroup is part of a parent group. Please delete the parent group first."
+      );
+      return;
+    }
+
+    // Proceed with deletion as before.
     const layer = groupToDelete.layer ?? 0;
     const sameLayerGroups = groups.filter(
       (g) => (g.layer ?? 0) === layer && g.id !== idToDelete
@@ -459,16 +505,22 @@ const Home = () => {
             <MenubarTrigger className="text-foreground">File</MenubarTrigger>
             <MenubarContent>
               <MenubarItem className="text-foreground disabled">
-                New Project
+                New...
               </MenubarItem>
               <MenubarItem className="text-foreground disabled">
-                Open Project...
+                Open...
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem className="text-foreground disabled">
                 Close
               </MenubarItem>
-              <MenubarItem className="text-foreground disabled">
+              <MenubarItem
+                onSelect={() => {
+                  if (projectName === "Untitled Project") {
+                    setSaveDialogOpen(true);
+                  }
+                }}
+              >
                 Save
               </MenubarItem>
               <MenubarItem className="text-foreground disabled">
@@ -493,6 +545,12 @@ const Home = () => {
                 </MenubarItem>
               </MenubarContextSubmenu>
             </MenubarContent>
+            <SaveProjectDialog
+              open={saveDialogOpen}
+              onOpenChange={setSaveDialogOpen}
+              currentName={projectName}
+              onSave={(newName) => setProjectName(newName)}
+            />
           </MenubarMenu>
           <MenubarMenu>
             <MenubarTrigger className="text-foreground">Edit</MenubarTrigger>
@@ -547,6 +605,11 @@ const Home = () => {
             </MenubarContent>
           </MenubarMenu>
         </Menubar>
+        <div className="absolute left-1/2 transform -translate-x-1/2">
+          <span className="text-foreground opacity-60 text-sm">
+            {projectName}
+          </span>
+        </div>
       </header>
 
       {/* Timeline Section */}
