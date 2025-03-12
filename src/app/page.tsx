@@ -90,9 +90,8 @@ function ColorMenu({ onColorSelect }: ColorMenuProps) {
 
 const Home = () => {
   const { setTheme } = useTheme();
-  useEffect(() => {
-    setTheme("system");
-  }, [setTheme]);
+
+  const [activeTheme, setActiveTheme] = useState("system");
 
   // Zoom level as a reactive variable; 2 means 200vw, etc.
   const [zoomLevel, setZoomLevel] = useState(2);
@@ -118,32 +117,33 @@ const Home = () => {
   // header
   const [showAbout, setShowAbout] = useState(false);
 
-  // Restore session from localStorage on mount
   useEffect(() => {
+    // Restore saved session
     const savedSession = localStorage.getItem("museformer_session");
     if (savedSession) {
       try {
         const sessionData = JSON.parse(savedSession);
-        if (sessionData.groups) {
-          setGroups(sessionData.groups);
-        }
-        if (sessionData.videoId) {
-          setVideoId(sessionData.videoId);
-        }
-        if (sessionData.youtubeUrl) {
-          setYoutubeUrl(sessionData.youtubeUrl);
-        }
-        if (sessionData.timelineScroll) {
+        if (sessionData.groups) setGroups(sessionData.groups);
+        if (sessionData.videoId) setVideoId(sessionData.videoId);
+        if (sessionData.youtubeUrl) setYoutubeUrl(sessionData.youtubeUrl);
+        if (sessionData.timelineScroll)
           setTimelineScroll(sessionData.timelineScroll);
-        }
         if (sessionData.zoomLevel) setZoomLevel(sessionData.zoomLevel);
+        if (sessionData.activeTheme) {
+          setActiveTheme(sessionData.activeTheme);
+          setTheme(sessionData.activeTheme);
+        }
       } catch (error) {
         console.error("Error parsing saved session:", error);
       }
+    } else {
+      // If nothing is saved, default to "system"
+      setActiveTheme("system");
+      setTheme("system");
     }
-  }, []);
+  }, []); // Run only once on mount
 
-  // Save session to localStorage when timeline (groups), active URL, or timeline scroll changes
+  // Save session to localStorage when any of these state changes
   useEffect(() => {
     const sessionData = {
       groups,
@@ -151,9 +151,10 @@ const Home = () => {
       youtubeUrl,
       timelineScroll,
       zoomLevel,
+      activeTheme, // store the current theme value
     };
     localStorage.setItem("museformer_session", JSON.stringify(sessionData));
-  }, [groups, videoId, youtubeUrl, timelineScroll, zoomLevel]);
+  }, [groups, videoId, youtubeUrl, timelineScroll, zoomLevel, activeTheme]);
 
   // Zoom controls...
   useEffect(() => {
@@ -522,6 +523,7 @@ const Home = () => {
               <MenubarItem
                 onSelect={() => {
                   setTheme("light");
+                  setActiveTheme("light");
                 }}
               >
                 Light
@@ -529,6 +531,7 @@ const Home = () => {
               <MenubarItem
                 onSelect={() => {
                   setTheme("dark");
+                  setActiveTheme("dark");
                 }}
               >
                 Dark
@@ -536,6 +539,7 @@ const Home = () => {
               <MenubarItem
                 onSelect={() => {
                   setTheme("system");
+                  setActiveTheme("system");
                 }}
               >
                 System
