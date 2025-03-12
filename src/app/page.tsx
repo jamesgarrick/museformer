@@ -91,8 +91,8 @@ function ColorMenu({ onColorSelect }: ColorMenuProps) {
 const Home = () => {
   const { setTheme } = useTheme();
   useEffect(() => {
-    setTheme("light");
-  });
+    setTheme("system");
+  }, []);
 
   // Zoom level as a reactive variable; 2 means 200vw, etc.
   const [zoomLevel, setZoomLevel] = useState(2);
@@ -477,6 +477,32 @@ const Home = () => {
               <MenubarItem className="disabled">Online Handbook</MenubarItem>
               <MenubarSeparator />
               <MenubarItem className="disabled">View Logs</MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+          <MenubarMenu>
+            <MenubarTrigger className="text-foreground">View</MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem
+                onSelect={() => {
+                  setTheme("light");
+                }}
+              >
+                Light
+              </MenubarItem>
+              <MenubarItem
+                onSelect={() => {
+                  setTheme("dark");
+                }}
+              >
+                Dark
+              </MenubarItem>
+              <MenubarItem
+                onSelect={() => {
+                  setTheme("system");
+                }}
+              >
+                System
+              </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
         </Menubar>
