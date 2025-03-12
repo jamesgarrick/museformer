@@ -92,7 +92,7 @@ const Home = () => {
   const { setTheme } = useTheme();
   useEffect(() => {
     setTheme("system");
-  }, []);
+  }, [setTheme]);
 
   // Zoom level as a reactive variable; 2 means 200vw, etc.
   const [zoomLevel, setZoomLevel] = useState(2);
@@ -117,6 +117,43 @@ const Home = () => {
 
   // header
   const [showAbout, setShowAbout] = useState(false);
+
+  // Restore session from localStorage on mount
+  useEffect(() => {
+    const savedSession = localStorage.getItem("museformer_session");
+    if (savedSession) {
+      try {
+        const sessionData = JSON.parse(savedSession);
+        if (sessionData.groups) {
+          setGroups(sessionData.groups);
+        }
+        if (sessionData.videoId) {
+          setVideoId(sessionData.videoId);
+        }
+        if (sessionData.youtubeUrl) {
+          setYoutubeUrl(sessionData.youtubeUrl);
+        }
+        if (sessionData.timelineScroll) {
+          setTimelineScroll(sessionData.timelineScroll);
+        }
+        if (sessionData.zoomLevel) setZoomLevel(sessionData.zoomLevel);
+      } catch (error) {
+        console.error("Error parsing saved session:", error);
+      }
+    }
+  }, []);
+
+  // Save session to localStorage when timeline (groups), active URL, or timeline scroll changes
+  useEffect(() => {
+    const sessionData = {
+      groups,
+      videoId,
+      youtubeUrl,
+      timelineScroll,
+      zoomLevel,
+    };
+    localStorage.setItem("museformer_session", JSON.stringify(sessionData));
+  }, [groups, videoId, youtubeUrl, timelineScroll, zoomLevel]);
 
   // Zoom controls...
   useEffect(() => {
