@@ -91,8 +91,8 @@ function ColorMenu({ onColorSelect }: ColorMenuProps) {
 const Home = () => {
   const { setTheme } = useTheme();
   useEffect(() => {
-    setTheme("dark");
-  }, [setTheme]);
+    setTheme("light");
+  });
 
   // Zoom level as a reactive variable; 2 means 200vw, etc.
   const [zoomLevel, setZoomLevel] = useState(2);
@@ -401,7 +401,7 @@ const Home = () => {
   return (
     <div className="h-screen overflow-hidden flex flex-col bg-background">
       {/* Header */}
-      <header className="bg-background h-8 w-fit flex items-center justify-center border-b">
+      <header className="bg-background h-8 w-fit flex items-center justify-center">
         <Menubar className="flex items-center justify-center border-none">
           <MenubarMenu>
             <MenubarTrigger className="font-bold text-foreground">
@@ -412,7 +412,7 @@ const Home = () => {
                 About Museformer
               </MenubarItem>
               <MenubarSeparator />
-              <MenubarItem>Preferences...</MenubarItem>
+              <MenubarItem className="disabled">Preferences...</MenubarItem>
             </MenubarContent>
           </MenubarMenu>
           <AboutDialog open={showAbout} onOpenChange={setShowAbout} />
