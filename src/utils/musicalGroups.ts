@@ -120,7 +120,7 @@ export function groupSelectedGroups(
       id: Date.now().toString() + Math.random().toString(36).substring(2),
       startTime: minStart,
       endTime: maxEnd,
-      shape: "rectangle",
+      shape: "curve",
       color: "transparent",
       texts: {
         topLeft: "",
@@ -153,7 +153,7 @@ export function groupSelectedGroups(
     id: Date.now().toString() + Math.random().toString(36).substring(2),
     startTime: minStart,
     endTime: maxEnd,
-    shape: "rectangle",
+    shape: "curve",
     color: "transparent",
     texts: {
       topLeft: "",
