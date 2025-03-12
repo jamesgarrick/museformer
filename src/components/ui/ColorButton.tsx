@@ -23,8 +23,8 @@ export const ColorButton: React.FC<ColorButtonProps> = ({
       {/* Top 2/3 color area */}
       <div style={{ flex: 2, backgroundColor: color }} className="flex-1" />
       {/* Bottom 1/3 label area */}
-      <div className="absolute bottom-0 left-0 w-full h-1/3 bg-white flex items-center justify-center">
-        <span className="text-black text-xs font-medium">{label}</span>
+      <div className="absolute bottom-0 left-0 w-full h-1/4 bg-card flex items-center justify-center">
+        <span className="text-foreground text-xs font-medium">{label}</span>
       </div>
     </Button>
   );

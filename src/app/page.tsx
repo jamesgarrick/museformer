@@ -92,7 +92,7 @@ const Home = () => {
   const { setTheme } = useTheme();
   useEffect(() => {
     setTheme("system");
-  }, [setTheme]);
+  }, []);
 
   // Zoom level as a reactive variable; 2 means 200vw, etc.
   const [zoomLevel, setZoomLevel] = useState(2);
@@ -399,31 +399,43 @@ const Home = () => {
   const playheadLeft = playheadAbsolute - timelineScroll;
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col">
+    <div className="h-screen overflow-hidden flex flex-col bg-background">
       {/* Header */}
-      <header className="bg-gray-200 h-8 w-fit flex items-center justify-center">
+      <header className="bg-background h-8 w-fit flex items-center justify-center">
         <Menubar className="flex items-center justify-center border-none">
           <MenubarMenu>
-            <MenubarTrigger className="font-bold">Museformer</MenubarTrigger>
+            <MenubarTrigger className="font-bold text-foreground">
+              Museformer
+            </MenubarTrigger>
             <MenubarContent>
               <MenubarItem onClick={() => setShowAbout(true)}>
                 About Museformer
               </MenubarItem>
               <MenubarSeparator />
-              <MenubarItem>Preferences...</MenubarItem>
+              <MenubarItem className="disabled">Preferences...</MenubarItem>
             </MenubarContent>
           </MenubarMenu>
           <AboutDialog open={showAbout} onOpenChange={setShowAbout} />
 
           <MenubarMenu>
-            <MenubarTrigger>File</MenubarTrigger>
+            <MenubarTrigger className="text-foreground">File</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem>New Project</MenubarItem>
-              <MenubarItem className="disabled">Open Project...</MenubarItem>
+              <MenubarItem className="text-foreground disabled">
+                New Project
+              </MenubarItem>
+              <MenubarItem className="text-foreground disabled">
+                Open Project...
+              </MenubarItem>
               <MenubarSeparator />
-              <MenubarItem className="disabled">Close</MenubarItem>
-              <MenubarItem className="disabled">Save</MenubarItem>
-              <MenubarItem className="disabled">Save As...</MenubarItem>
+              <MenubarItem className="text-foreground disabled">
+                Close
+              </MenubarItem>
+              <MenubarItem className="text-foreground disabled">
+                Save
+              </MenubarItem>
+              <MenubarItem className="text-foreground disabled">
+                Save As...
+              </MenubarItem>
 
               <MenubarContextSubmenu trigger="Export">
                 <MenubarItem
@@ -445,10 +457,14 @@ const Home = () => {
             </MenubarContent>
           </MenubarMenu>
           <MenubarMenu>
-            <MenubarTrigger>Edit</MenubarTrigger>
+            <MenubarTrigger className="text-foreground">Edit</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem className="disabled">Undo</MenubarItem>
-              <MenubarItem className="disabled">Redo</MenubarItem>
+              <MenubarItem className="disabled">
+                Undo <MenubarShortcut className="px-4">ctrl+z</MenubarShortcut>
+              </MenubarItem>
+              <MenubarItem className="disabled">
+                Redo <MenubarShortcut className="px-4">ctrl+r</MenubarShortcut>
+              </MenubarItem>
               <MenubarSeparator />
               <MenubarItem className="disabled">Cut</MenubarItem>
               <MenubarItem className="disabled">Copy</MenubarItem>
@@ -456,29 +472,44 @@ const Home = () => {
             </MenubarContent>
           </MenubarMenu>
           <MenubarMenu>
-            <MenubarTrigger>Help</MenubarTrigger>
+            <MenubarTrigger className="text-foreground">Help</MenubarTrigger>
             <MenubarContent>
               <MenubarItem className="disabled">Online Handbook</MenubarItem>
               <MenubarSeparator />
               <MenubarItem className="disabled">View Logs</MenubarItem>
-              <MenubarContextSubmenu
-                trigger={
-                  <span>
-                    Share <MenubarShortcut>⌘S</MenubarShortcut>
-                  </span>
-                }
+            </MenubarContent>
+          </MenubarMenu>
+          <MenubarMenu>
+            <MenubarTrigger className="text-foreground">View</MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem
+                onSelect={() => {
+                  setTheme("light");
+                }}
               >
-                <MenubarItem>Email</MenubarItem>
-                <MenubarItem>Messages</MenubarItem>
-                <MenubarItem>Notes</MenubarItem>
-              </MenubarContextSubmenu>
+                Light
+              </MenubarItem>
+              <MenubarItem
+                onSelect={() => {
+                  setTheme("dark");
+                }}
+              >
+                Dark
+              </MenubarItem>
+              <MenubarItem
+                onSelect={() => {
+                  setTheme("system");
+                }}
+              >
+                System
+              </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
         </Menubar>
       </header>
 
       {/* Timeline Section */}
-      <main className="flex-grow flex flex-col pl-1 gap-1 bg-gray-300 ">
+      <main className="flex-grow flex flex-col pl-1 gap-1 bg-card">
         <div className="relative shadow overflow-x-auto overflow-y-hidden flex flex-col flex-grow no-scrollbar">
           <div className="flex-grow" style={{ width: `${containerWidthVW}vw` }}>
             {groups.map((group) => (
@@ -505,7 +536,7 @@ const Home = () => {
               onTimelineClick={handleTimelineClick}
             />
             <div
-              className="absolute top-0 h-4 w-1 bg-red-500"
+              className="absolute top-0 h-4 w-1 bg-primary"
               style={{ left: playheadLeft }}
             />
           </div>
@@ -513,16 +544,16 @@ const Home = () => {
       </main>
 
       {/* Bottom Bar */}
-      <footer className="border-t flex h-[40vh] bg-gray-100">
+      <footer className="border-t flex h-[40vh] bg-card">
         {/* Tools Section */}
         <div className="flex-none flex flex-col h-full p-4 overflow-y-auto border-r">
-          <h2 className="text-lg font-semibold mb-2">Tools</h2>
+          <h2 className="text-lg font-semibold mb-2 text-foreground">Tools</h2>
           <div className="grid grid-cols-2 gap-3 flex-grow min-h-0">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="editor"
                     className="w-full flex-1 min-h-0"
                     onClick={() =>
                       setActiveSubMenu((prev) =>
@@ -542,7 +573,7 @@ const Home = () => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="editor"
                     className="w-full flex-1 min-h-0"
                     onClick={() =>
                       setActiveSubMenu((prev) =>
@@ -562,7 +593,7 @@ const Home = () => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="editor"
                     className="w-full flex-1 min-h-0"
                     onClick={handleDeleteGroup}
                   >
@@ -578,7 +609,7 @@ const Home = () => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="editor"
                     className="w-full flex-1 min-h-0"
                     onClick={handleSplitGroup}
                   >
@@ -594,7 +625,7 @@ const Home = () => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="editor"
                     className="w-full flex-1 min-h-0"
                     onClick={handleGroupSelected}
                   >
@@ -609,7 +640,7 @@ const Home = () => {
           </div>
         </div>
 
-        <div className="flex-grow p-4 overflow-y-auto min-h-0">
+        <div className="flex-grow p-4 overflow-y-auto min-h-0 bg-background">
           {activeSubMenu === SubMenu.COLORS && (
             <ColorMenu onColorSelect={handleColorSelect} />
           )}
@@ -618,7 +649,7 @@ const Home = () => {
           )}
         </div>
 
-        <div className="flex-none flex flex-col h-full p-4 border-l">
+        <div className="flex-none flex flex-col h-full p-4 border-l bg-background">
           <div className="h-full">
             {videoId ? (
               <YouTube
@@ -650,7 +681,7 @@ const Home = () => {
                   onChange={(e) => setYoutubeUrl(e.target.value)}
                   className="w-full"
                 />
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full" variant="default">
                   Load Video
                 </Button>
               </form>

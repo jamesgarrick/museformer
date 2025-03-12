@@ -32,7 +32,7 @@ const MediaControls: React.FC<MediaControlsProps> = ({
     <div className="mt-4 flex justify-end">
       <div className="flex space-x-2">
         <Button
-          variant="outline"
+          variant="editor"
           className="flex items-center"
           onClick={onBeginning}
         >
@@ -40,18 +40,14 @@ const MediaControls: React.FC<MediaControlsProps> = ({
           <span>Beginning</span>
         </Button>
         <Button
-          variant="outline"
+          variant="editor"
           className="flex items-center"
           onClick={onRewind}
         >
           <ArrowUturnLeftIcon className="w-5 h-5 mr-1" />
           <span>Rewind</span>
         </Button>
-        <Button
-          variant="outline"
-          className="flex items-center"
-          onClick={onPlay}
-        >
+        <Button variant="editor" className="flex items-center" onClick={onPlay}>
           {isPlaying ? (
             <PauseIcon className="w-5 h-5" />
           ) : (
@@ -59,14 +55,14 @@ const MediaControls: React.FC<MediaControlsProps> = ({
           )}
         </Button>
         <Button
-          variant="outline"
+          variant="editor"
           className="flex items-center"
           onClick={onForward}
         >
           <ArrowUturnRightIcon className="w-5 h-5 mr-1" />
           <span>Forward</span>
         </Button>
-        <Button variant="outline" className="flex items-center" onClick={onEnd}>
+        <Button variant="editor" className="flex items-center" onClick={onEnd}>
           <ChevronDoubleRightIcon className="w-5 h-5 mr-1" />
           <span>End</span>
         </Button>
