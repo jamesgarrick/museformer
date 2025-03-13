@@ -15,6 +15,7 @@ export interface ProjectData {
 const STORAGE_KEY = "museformer_projects";
 
 export function getAllProjects(): Record<string, ProjectData> {
+  if (typeof window === "undefined") return {}; // Return empty on server side
   const projectsStr = localStorage.getItem(STORAGE_KEY);
   return projectsStr ? JSON.parse(projectsStr) : {};
 }
