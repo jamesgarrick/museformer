@@ -1,5 +1,6 @@
 // File: src/components/Header.tsx
 "use client";
+import { useState } from "react";
 
 import React from "react";
 import {
@@ -21,8 +22,6 @@ import { ProjectData } from "@/utils/projectUtil";
 
 type HeaderProps = {
   projectName: string;
-  showAbout: boolean;
-  setShowAbout: (open: boolean) => void;
   newProject: () => void;
   openProject: (projName: string) => void;
   projects: Record<string, ProjectData>; // your projects object from localStorage
@@ -34,8 +33,6 @@ type HeaderProps = {
 
 export const Header: React.FC<HeaderProps> = ({
   projectName,
-  showAbout,
-  setShowAbout,
   newProject,
   openProject,
   saveDialogOpen,
@@ -48,6 +45,8 @@ export const Header: React.FC<HeaderProps> = ({
     groups,
     // ...other state and functions
   } = useProjectState();
+
+  const [showAbout, setShowAbout] = useState(false);
 
   const projects = getAllProjects();
 

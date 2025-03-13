@@ -83,7 +83,6 @@ const Home = () => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [innerWidth, setInnerWidth] = useState(0);
 
-  // header
   const [activeSubMenu, setActiveSubMenu] = useState<SubMenu>(SubMenu.NONE);
 
   useEffect(() => {
@@ -311,8 +310,6 @@ const Home = () => {
         setSaveDialogOpen={() => {}}
         setTheme={(theme: string) => setTheme(theme)}
         setActiveTheme={setActiveTheme}
-        showAbout={false} // Pass your showAbout state and setter as required.
-        setShowAbout={() => {}}
       />
 
       <main className="flex-grow flex flex-col pl-1 gap-1 bg-card overflow-hidden">
