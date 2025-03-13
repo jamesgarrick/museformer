@@ -123,14 +123,20 @@ const Home = () => {
   const [projects, setProjects] = useState(JSON);
 
   const openProject = (projName: string) => {
+    console.log("[openProject] Attempting to open project:", projName);
     const projectsStr = localStorage.getItem("museformer_projects");
     if (projectsStr) {
       try {
         const allProjects = JSON.parse(projectsStr);
+        console.log("[openProject] All projects loaded:", allProjects);
         const project = allProjects[projName];
+        console.log("[openProject] Selected project data:", project);
         if (project) {
           setProjectName(project.projectName);
-          if (project.groups) setGroups(project.groups);
+          if (project.groups) {
+            setGroups(project.groups);
+            console.log("[openProject] Groups loaded:", project.groups);
+          }
           if (project.videoId) setVideoId(project.videoId);
           if (project.youtubeUrl) setYoutubeUrl(project.youtubeUrl);
           if (project.timelineScroll) setTimelineScroll(project.timelineScroll);
@@ -139,11 +145,62 @@ const Home = () => {
             setActiveTheme(project.activeTheme);
             setTheme(project.activeTheme);
           }
+          console.log("[openProject] Project loaded successfully.");
+        } else {
+          console.log("[openProject] No project found with key:", projName);
         }
       } catch (error) {
-        console.error("Error parsing saved projects:", error);
+        console.error("[openProject] Error parsing saved projects:", error);
       }
+    } else {
+      console.log("[openProject] No projects found in localStorage.");
     }
+  };
+
+  const newProject = () => {
+    console.log(
+      "[newProject] Starting new project with current projectName:",
+      projectName
+    );
+    if (projectName === "Untitled Project") {
+      const projectsStr = localStorage.getItem("museformer_projects");
+      if (projectsStr) {
+        try {
+          const projects = JSON.parse(projectsStr);
+          if (projects["Untitled Project"]) {
+            console.log(
+              "[newProject] Removing default project 'Untitled Project'."
+            );
+            delete projects["Untitled Project"];
+            localStorage.setItem(
+              "museformer_projects",
+              JSON.stringify(projects)
+            );
+            console.log("[newProject] Projects after deletion:", projects);
+          }
+        } catch (error) {
+          console.error("[newProject] Error removing default project:", error);
+        }
+      }
+    } else {
+      console.log(
+        "[newProject] Current project name is not default. Skipping deletion."
+      );
+    }
+
+    // Reset all key state variables:
+    console.log("[newProject] Resetting state for new project...");
+    setProjectName("Untitled Project");
+    setGroups([]); // Optionally, you may reinitialize with a default parent group.
+    setVideoId(null);
+    setYoutubeUrl("");
+    setTimelineScroll(0);
+    setZoomLevel(2);
+    setActiveTheme("system");
+    setTheme("system");
+    setCurrentTime(0);
+    setDuration(0);
+    console.log("[newProject] New project state has been reset.");
   };
 
   // Restore session on mount.
@@ -531,7 +588,10 @@ const Home = () => {
           <MenubarMenu>
             <MenubarTrigger className="text-foreground">File</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem className="text-foreground disabled">
+              <MenubarItem
+                className="text-foreground"
+                onSelect={() => newProject()}
+              >
                 New...
               </MenubarItem>
               <MenubarItem className="text-foreground disabled">
