@@ -121,7 +121,7 @@ const MusicalGroupComponent: React.FC<MusicalGroupComponentProps> = ({
 
   return (
     <div
-      className="absolute box-border cursor-pointer pointer-events-auto overflow-hidden"
+      className="absolute box-border cursor-pointer pointer-events-auto overflow-hidden !border-foreground"
       style={containerStyle}
       title={Object.values(group.texts).join(" | ")}
       onClick={(e) => {

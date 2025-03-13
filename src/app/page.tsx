@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import MusicalGroupComponent from "@/components/ui/MusicalGroupComponent";
 import { MusicalGroup } from "@/interfaces/MusicalGroup";
+import { useTheme } from "next-themes";
 import {
   Tooltip,
   TooltipContent,
@@ -31,6 +32,7 @@ import { ShapeMenu } from "@/components/ui/ShapeMenu";
 
 import AboutDialog from "@/components/About";
 import { exportTimelineToJson } from "@/utils/exportTimeline";
+import SaveProjectDialog from "@/components/SaveProjectDialog";
 
 // Extend your submenu enum:
 enum SubMenu {
@@ -88,6 +90,12 @@ function ColorMenu({ onColorSelect }: ColorMenuProps) {
 }
 
 const Home = () => {
+  const { setTheme } = useTheme();
+
+  const [activeTheme, setActiveTheme] = useState("system");
+  const [projectName, setProjectName] = useState("Untitled Project");
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+
   // Zoom level as a reactive variable; 2 means 200vw, etc.
   const [zoomLevel, setZoomLevel] = useState(2);
   const containerWidthVW = zoomLevel * 100; // in vw units
@@ -111,6 +119,159 @@ const Home = () => {
 
   // header
   const [showAbout, setShowAbout] = useState(false);
+
+  const [projects, setProjects] = useState(JSON);
+
+  const openProject = (projName: string) => {
+    console.log("[openProject] Attempting to open project:", projName);
+    const projectsStr = localStorage.getItem("museformer_projects");
+    if (projectsStr) {
+      try {
+        const allProjects = JSON.parse(projectsStr);
+        console.log("[openProject] All projects loaded:", allProjects);
+        const project = allProjects[projName];
+        console.log("[openProject] Selected project data:", project);
+        if (project) {
+          setProjectName(project.projectName);
+          if (project.groups) {
+            setGroups(project.groups);
+            console.log("[openProject] Groups loaded:", project.groups);
+          }
+          if (project.videoId) setVideoId(project.videoId);
+          if (project.youtubeUrl) setYoutubeUrl(project.youtubeUrl);
+          if (project.timelineScroll) setTimelineScroll(project.timelineScroll);
+          if (project.zoomLevel) setZoomLevel(project.zoomLevel);
+          if (project.activeTheme) {
+            setActiveTheme(project.activeTheme);
+            setTheme(project.activeTheme);
+          }
+          console.log("[openProject] Project loaded successfully.");
+        } else {
+          console.log("[openProject] No project found with key:", projName);
+        }
+      } catch (error) {
+        console.error("[openProject] Error parsing saved projects:", error);
+      }
+    } else {
+      console.log("[openProject] No projects found in localStorage.");
+    }
+  };
+
+  const newProject = () => {
+    console.log(
+      "[newProject] Starting new project with current projectName:",
+      projectName
+    );
+    if (projectName === "Untitled Project") {
+      const projectsStr = localStorage.getItem("museformer_projects");
+      if (projectsStr) {
+        try {
+          const projects = JSON.parse(projectsStr);
+          if (projects["Untitled Project"]) {
+            console.log(
+              "[newProject] Removing default project 'Untitled Project'."
+            );
+            delete projects["Untitled Project"];
+            localStorage.setItem(
+              "museformer_projects",
+              JSON.stringify(projects)
+            );
+            console.log("[newProject] Projects after deletion:", projects);
+          }
+        } catch (error) {
+          console.error("[newProject] Error removing default project:", error);
+        }
+      }
+    } else {
+      console.log(
+        "[newProject] Current project name is not default. Skipping deletion."
+      );
+    }
+
+    // Reset all key state variables:
+    console.log("[newProject] Resetting state for new project...");
+    setProjectName("Untitled Project");
+    setGroups([]); // Optionally, you may reinitialize with a default parent group.
+    setVideoId(null);
+    setYoutubeUrl("");
+    setTimelineScroll(0);
+    setZoomLevel(2);
+    setActiveTheme("system");
+    setTheme("system");
+    setCurrentTime(0);
+    setDuration(0);
+    console.log("[newProject] New project state has been reset.");
+  };
+
+  // Restore session on mount.
+  // Instead of storing the current project in a separate key,
+  // we load all projects from "museformer_projects" and choose the one with the most recent lastEdited.
+  useEffect(() => {
+    const projectsStr = localStorage.getItem("museformer_projects");
+    if (projectsStr) {
+      try {
+        const allProjects = JSON.parse(projectsStr);
+        setProjects(allProjects);
+        let mostRecentProject = null;
+        let mostRecentTimestamp = 0;
+        for (const key in allProjects) {
+          const proj = allProjects[key];
+          if (proj.lastEdited) {
+            const timestamp = new Date(proj.lastEdited).getTime();
+            if (timestamp > mostRecentTimestamp) {
+              mostRecentTimestamp = timestamp;
+              mostRecentProject = proj;
+            }
+          }
+        }
+        if (mostRecentProject) {
+          setProjectName(mostRecentProject.projectName);
+          if (mostRecentProject.groups) setGroups(mostRecentProject.groups);
+          if (mostRecentProject.videoId) setVideoId(mostRecentProject.videoId);
+          if (mostRecentProject.youtubeUrl)
+            setYoutubeUrl(mostRecentProject.youtubeUrl);
+          if (mostRecentProject.timelineScroll)
+            setTimelineScroll(mostRecentProject.timelineScroll);
+          if (mostRecentProject.zoomLevel)
+            setZoomLevel(mostRecentProject.zoomLevel);
+          if (mostRecentProject.activeTheme) {
+            setActiveTheme(mostRecentProject.activeTheme);
+            setTheme(mostRecentProject.activeTheme);
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing saved projects:", error);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save session: update the current project in "museformer_projects".
+  useEffect(() => {
+    const allProjects = JSON.parse(
+      localStorage.getItem("museformer_projects") || "{}"
+    );
+    const currentProjectData = {
+      groups,
+      videoId,
+      youtubeUrl,
+      timelineScroll,
+      zoomLevel,
+      activeTheme,
+      projectName,
+      lastEdited: new Date().toISOString(),
+    };
+    allProjects[projectName] = currentProjectData;
+    localStorage.setItem("museformer_projects", JSON.stringify(allProjects));
+  }, [
+    groups,
+    videoId,
+    youtubeUrl,
+    timelineScroll,
+    zoomLevel,
+    activeTheme,
+    projectName,
+  ]);
 
   // Zoom controls...
   useEffect(() => {
@@ -262,6 +423,19 @@ const Home = () => {
     const idToDelete = selectedGroupIds[0];
     const groupToDelete = groups.find((g) => g.id === idToDelete);
     if (!groupToDelete) return;
+
+    // Check if this group is a child of any other group.
+    const parentGroup = groups.find(
+      (g) => g.children && g.children.some((child) => child.id === idToDelete)
+    );
+    if (parentGroup) {
+      alert(
+        "This subgroup is part of a parent group. Please delete the parent group first."
+      );
+      return;
+    }
+
+    // Proceed with deletion as before.
     const layer = groupToDelete.layer ?? 0;
     const sameLayerGroups = groups.filter(
       (g) => (g.layer ?? 0) === layer && g.id !== idToDelete
@@ -393,31 +567,69 @@ const Home = () => {
   const playheadLeft = playheadAbsolute - timelineScroll;
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col">
+    <div className="h-screen overflow-hidden flex flex-col bg-background">
       {/* Header */}
-      <header className="bg-gray-200 h-8 w-fit flex items-center justify-center">
+      <header className="bg-background h-8 w-fit flex items-center justify-center">
         <Menubar className="flex items-center justify-center border-none">
           <MenubarMenu>
-            <MenubarTrigger className="font-bold">Museformer</MenubarTrigger>
+            <MenubarTrigger className="font-bold text-foreground">
+              Museformer
+            </MenubarTrigger>
             <MenubarContent>
               <MenubarItem onClick={() => setShowAbout(true)}>
                 About Museformer
               </MenubarItem>
               <MenubarSeparator />
-              <MenubarItem>Preferences...</MenubarItem>
+              <MenubarItem className="disabled">Preferences...</MenubarItem>
             </MenubarContent>
           </MenubarMenu>
           <AboutDialog open={showAbout} onOpenChange={setShowAbout} />
 
           <MenubarMenu>
-            <MenubarTrigger>File</MenubarTrigger>
+            <MenubarTrigger className="text-foreground">File</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem>New Project</MenubarItem>
-              <MenubarItem className="disabled">Open Project...</MenubarItem>
+              <MenubarItem
+                className="text-foreground"
+                onSelect={() => newProject()}
+              >
+                New...
+              </MenubarItem>
+              <MenubarItem className="text-foreground disabled">
+                Open...
+              </MenubarItem>
+              <MenubarContextSubmenu trigger="Open Recent">
+                {projects && Object.keys(projects).length > 0 ? (
+                  Object.keys(projects).map((projName) => (
+                    <MenubarItem
+                      key={projName}
+                      className="text-foreground"
+                      onSelect={() => openProject(projName)}
+                    >
+                      {projName}
+                    </MenubarItem>
+                  ))
+                ) : (
+                  <MenubarItem className="text-foreground disabled">
+                    No recent projects
+                  </MenubarItem>
+                )}
+              </MenubarContextSubmenu>
               <MenubarSeparator />
-              <MenubarItem className="disabled">Close</MenubarItem>
-              <MenubarItem className="disabled">Save</MenubarItem>
-              <MenubarItem className="disabled">Save As...</MenubarItem>
+              <MenubarItem className="text-foreground disabled">
+                Close
+              </MenubarItem>
+              <MenubarItem
+                onSelect={() => {
+                  if (projectName === "Untitled Project") {
+                    setSaveDialogOpen(true);
+                  }
+                }}
+              >
+                Save
+              </MenubarItem>
+              <MenubarItem className="text-foreground disabled">
+                Save As...
+              </MenubarItem>
 
               <MenubarContextSubmenu trigger="Export">
                 <MenubarItem
@@ -437,12 +649,22 @@ const Home = () => {
                 </MenubarItem>
               </MenubarContextSubmenu>
             </MenubarContent>
+            <SaveProjectDialog
+              open={saveDialogOpen}
+              onOpenChange={setSaveDialogOpen}
+              currentName={projectName}
+              onSave={(newName) => setProjectName(newName)}
+            />
           </MenubarMenu>
           <MenubarMenu>
-            <MenubarTrigger>Edit</MenubarTrigger>
+            <MenubarTrigger className="text-foreground">Edit</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem className="disabled">Undo</MenubarItem>
-              <MenubarItem className="disabled">Redo</MenubarItem>
+              <MenubarItem className="disabled">
+                Undo <MenubarShortcut className="px-4">ctrl+z</MenubarShortcut>
+              </MenubarItem>
+              <MenubarItem className="disabled">
+                Redo <MenubarShortcut className="px-4">ctrl+r</MenubarShortcut>
+              </MenubarItem>
               <MenubarSeparator />
               <MenubarItem className="disabled">Cut</MenubarItem>
               <MenubarItem className="disabled">Copy</MenubarItem>
@@ -450,73 +672,101 @@ const Home = () => {
             </MenubarContent>
           </MenubarMenu>
           <MenubarMenu>
-            <MenubarTrigger>Help</MenubarTrigger>
+            <MenubarTrigger className="text-foreground">Help</MenubarTrigger>
             <MenubarContent>
               <MenubarItem className="disabled">Online Handbook</MenubarItem>
               <MenubarSeparator />
               <MenubarItem className="disabled">View Logs</MenubarItem>
-              <MenubarContextSubmenu
-                trigger={
-                  <span>
-                    Share <MenubarShortcut>⌘S</MenubarShortcut>
-                  </span>
-                }
+            </MenubarContent>
+          </MenubarMenu>
+          <MenubarMenu>
+            <MenubarTrigger className="text-foreground">View</MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem
+                onSelect={() => {
+                  setTheme("light");
+                  setActiveTheme("light");
+                }}
               >
-                <MenubarItem>Email</MenubarItem>
-                <MenubarItem>Messages</MenubarItem>
-                <MenubarItem>Notes</MenubarItem>
-              </MenubarContextSubmenu>
+                Light
+              </MenubarItem>
+              <MenubarItem
+                onSelect={() => {
+                  setTheme("dark");
+                  setActiveTheme("dark");
+                }}
+              >
+                Dark
+              </MenubarItem>
+              <MenubarItem
+                onSelect={() => {
+                  setTheme("system");
+                  setActiveTheme("system");
+                }}
+              >
+                System
+              </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
         </Menubar>
+
+        <div className="absolute left-1/2 transform -translate-x-1/2">
+          <span className="text-foreground opacity-60 text-sm">
+            {projectName}
+          </span>
+        </div>
       </header>
 
-      {/* Timeline Section */}
-      <main className="flex-grow flex flex-col pl-1 gap-1 bg-gray-300 ">
-        <div className="relative shadow overflow-x-auto overflow-y-hidden flex flex-col flex-grow no-scrollbar">
-          <div className="flex-grow" style={{ width: `${containerWidthVW}vw` }}>
-            {groups.map((group) => (
-              <MusicalGroupComponent
-                key={group.id}
-                group={group}
-                totalDuration={duration}
-                selected={selectedGroupIds.includes(group.id)}
-                onClick={toggleGroupSelection}
-                onTextChange={handleTextChange}
-                zoomLevel={zoomLevel}
-              />
-            ))}
-          </div>
-          <div
-            ref={timelineRef}
-            className="relative overflow-x-auto"
-            style={{ width: `${containerWidthVW}vw`, height: "1rem" }}
-            onScroll={(e) => setTimelineScroll(e.currentTarget.scrollLeft)}
-          >
-            <Timeline
+      <main className="flex-grow flex flex-col pl-1 gap-1 bg-card overflow-hidden">
+        {/* Musical Groups Container - scrollable vertically */}
+        <div
+          className="relative shadow overflow-auto no-scrollbar"
+          style={{ height: "600px", width: `${containerWidthVW}vw` }}
+        >
+          {groups.map((group) => (
+            <MusicalGroupComponent
+              key={group.id}
+              group={group}
+              totalDuration={duration}
+              selected={selectedGroupIds.includes(group.id)}
+              onClick={toggleGroupSelection}
+              onTextChange={handleTextChange}
               zoomLevel={zoomLevel}
-              duration={duration}
-              onTimelineClick={handleTimelineClick}
             />
-            <div
-              className="absolute top-0 h-4 w-1 bg-red-500"
-              style={{ left: playheadLeft }}
-            />
-          </div>
+          ))}
+        </div>
+
+        {/* Timeline Container - Only scrollable horizontally */}
+        <div
+          ref={timelineRef}
+          className="relative overflow-x-auto flex-none"
+          style={{ width: `${containerWidthVW}vw`, height: "16px" }} // explicitly set timeline height
+          onScroll={(e) => setTimelineScroll(e.currentTarget.scrollLeft)}
+        >
+          <Timeline
+            zoomLevel={zoomLevel}
+            duration={duration}
+            onTimelineClick={handleTimelineClick}
+            className=""
+          />
+          <div
+            className="absolute top-0 h-4 w-1 bg-primary"
+            style={{ left: playheadLeft }}
+          />
         </div>
       </main>
 
       {/* Bottom Bar */}
-      <footer className="border-t flex h-[40vh] bg-gray-100">
+      <footer className="border-t flex h-[40vh] bg-card">
         {/* Tools Section */}
         <div className="flex-none flex flex-col h-full p-4 overflow-y-auto border-r">
-          <h2 className="text-lg font-semibold mb-2">Tools</h2>
+          <h2 className="text-lg font-semibold mb-2 text-foreground">Tools</h2>
           <div className="grid grid-cols-2 gap-3 flex-grow min-h-0">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="editor"
                     className="w-full flex-1 min-h-0"
                     onClick={() =>
                       setActiveSubMenu((prev) =>
@@ -536,7 +786,7 @@ const Home = () => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="editor"
                     className="w-full flex-1 min-h-0"
                     onClick={() =>
                       setActiveSubMenu((prev) =>
@@ -556,7 +806,7 @@ const Home = () => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="editor"
                     className="w-full flex-1 min-h-0"
                     onClick={handleDeleteGroup}
                   >
@@ -572,7 +822,7 @@ const Home = () => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="editor"
                     className="w-full flex-1 min-h-0"
                     onClick={handleSplitGroup}
                   >
@@ -588,7 +838,7 @@ const Home = () => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="editor"
                     className="w-full flex-1 min-h-0"
                     onClick={handleGroupSelected}
                   >
@@ -603,7 +853,7 @@ const Home = () => {
           </div>
         </div>
 
-        <div className="flex-grow p-4 overflow-y-auto min-h-0">
+        <div className="flex-grow p-4 overflow-y-auto min-h-0 bg-background">
           {activeSubMenu === SubMenu.COLORS && (
             <ColorMenu onColorSelect={handleColorSelect} />
           )}
@@ -612,7 +862,7 @@ const Home = () => {
           )}
         </div>
 
-        <div className="flex-none flex flex-col h-full p-4 border-l">
+        <div className="flex-none flex flex-col h-full p-4 border-l bg-background">
           <div className="h-full">
             {videoId ? (
               <YouTube
@@ -644,7 +894,7 @@ const Home = () => {
                   onChange={(e) => setYoutubeUrl(e.target.value)}
                   className="w-full"
                 />
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full" variant="default">
                   Load Video
                 </Button>
               </form>
