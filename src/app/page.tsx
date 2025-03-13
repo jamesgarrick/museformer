@@ -612,38 +612,42 @@ const Home = () => {
         </div>
       </header>
 
-      {/* Timeline Section */}
-      <main className="flex-grow flex flex-col pl-1 gap-1 bg-card">
-        <div className="relative shadow overflow-x-auto overflow-y-hidden flex flex-col flex-grow no-scrollbar">
-          <div className="flex-grow" style={{ width: `${containerWidthVW}vw` }}>
-            {groups.map((group) => (
-              <MusicalGroupComponent
-                key={group.id}
-                group={group}
-                totalDuration={duration}
-                selected={selectedGroupIds.includes(group.id)}
-                onClick={toggleGroupSelection}
-                onTextChange={handleTextChange}
-                zoomLevel={zoomLevel}
-              />
-            ))}
-          </div>
-          <div
-            ref={timelineRef}
-            className="relative overflow-x-auto"
-            style={{ width: `${containerWidthVW}vw`, height: "1rem" }}
-            onScroll={(e) => setTimelineScroll(e.currentTarget.scrollLeft)}
-          >
-            <Timeline
+      <main className="flex-grow flex flex-col pl-1 gap-1 bg-card overflow-hidden">
+        {/* Musical Groups Container - scrollable vertically */}
+        <div
+          className="relative shadow overflow-auto no-scrollbar"
+          style={{ height: "600px", width: `${containerWidthVW}vw` }}
+        >
+          {groups.map((group) => (
+            <MusicalGroupComponent
+              key={group.id}
+              group={group}
+              totalDuration={duration}
+              selected={selectedGroupIds.includes(group.id)}
+              onClick={toggleGroupSelection}
+              onTextChange={handleTextChange}
               zoomLevel={zoomLevel}
-              duration={duration}
-              onTimelineClick={handleTimelineClick}
             />
-            <div
-              className="absolute top-0 h-4 w-1 bg-primary"
-              style={{ left: playheadLeft }}
-            />
-          </div>
+          ))}
+        </div>
+
+        {/* Timeline Container - Only scrollable horizontally */}
+        <div
+          ref={timelineRef}
+          className="relative overflow-x-auto flex-none"
+          style={{ width: `${containerWidthVW}vw`, height: "16px" }} // explicitly set timeline height
+          onScroll={(e) => setTimelineScroll(e.currentTarget.scrollLeft)}
+        >
+          <Timeline
+            zoomLevel={zoomLevel}
+            duration={duration}
+            onTimelineClick={handleTimelineClick}
+            className=""
+          />
+          <div
+            className="absolute top-0 h-4 w-1 bg-primary"
+            style={{ left: playheadLeft }}
+          />
         </div>
       </main>
 
