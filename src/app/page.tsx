@@ -120,6 +120,32 @@ const Home = () => {
   // header
   const [showAbout, setShowAbout] = useState(false);
 
+  const [projects, setProjects] = useState(JSON);
+
+  const openProject = (projName: string) => {
+    const projectsStr = localStorage.getItem("museformer_projects");
+    if (projectsStr) {
+      try {
+        const allProjects = JSON.parse(projectsStr);
+        const project = allProjects[projName];
+        if (project) {
+          setProjectName(project.projectName);
+          if (project.groups) setGroups(project.groups);
+          if (project.videoId) setVideoId(project.videoId);
+          if (project.youtubeUrl) setYoutubeUrl(project.youtubeUrl);
+          if (project.timelineScroll) setTimelineScroll(project.timelineScroll);
+          if (project.zoomLevel) setZoomLevel(project.zoomLevel);
+          if (project.activeTheme) {
+            setActiveTheme(project.activeTheme);
+            setTheme(project.activeTheme);
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing saved projects:", error);
+      }
+    }
+  };
+
   // Restore session on mount.
   // Instead of storing the current project in a separate key,
   // we load all projects from "museformer_projects" and choose the one with the most recent lastEdited.
@@ -128,6 +154,7 @@ const Home = () => {
     if (projectsStr) {
       try {
         const allProjects = JSON.parse(projectsStr);
+        setProjects(allProjects);
         let mostRecentProject = null;
         let mostRecentTimestamp = 0;
         for (const key in allProjects) {
@@ -510,6 +537,23 @@ const Home = () => {
               <MenubarItem className="text-foreground disabled">
                 Open...
               </MenubarItem>
+              <MenubarContextSubmenu trigger="Open Recent">
+                {projects && Object.keys(projects).length > 0 ? (
+                  Object.keys(projects).map((projName) => (
+                    <MenubarItem
+                      key={projName}
+                      className="text-foreground"
+                      onSelect={() => openProject(projName)}
+                    >
+                      {projName}
+                    </MenubarItem>
+                  ))
+                ) : (
+                  <MenubarItem className="text-foreground disabled">
+                    No recent projects
+                  </MenubarItem>
+                )}
+              </MenubarContextSubmenu>
               <MenubarSeparator />
               <MenubarItem className="text-foreground disabled">
                 Close
@@ -605,6 +649,7 @@ const Home = () => {
             </MenubarContent>
           </MenubarMenu>
         </Menubar>
+
         <div className="absolute left-1/2 transform -translate-x-1/2">
           <span className="text-foreground opacity-60 text-sm">
             {projectName}

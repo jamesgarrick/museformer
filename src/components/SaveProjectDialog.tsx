@@ -35,6 +35,25 @@ const SaveProjectDialog: React.FC<SaveProjectDialogProps> = ({
     setProjectName(currentName);
   }, [currentName]);
 
+  const handleSave = () => {
+    // If the current project is the default, remove it from localStorage.
+    if (currentName === "Untitled Project") {
+      const projectsStr = localStorage.getItem("museformer_projects");
+      if (projectsStr) {
+        try {
+          const projects = JSON.parse(projectsStr);
+          delete projects["Untitled Project"];
+          localStorage.setItem("museformer_projects", JSON.stringify(projects));
+        } catch (error) {
+          console.error("Error deleting default project:", error);
+        }
+      }
+    }
+    // Then, call onSave with the new name.
+    onSave(projectName);
+    onOpenChange(false);
+  };
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogPortal>
@@ -62,10 +81,7 @@ const SaveProjectDialog: React.FC<SaveProjectDialogProps> = ({
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                onSave(projectName);
-                onOpenChange(false);
-              }}
+              onClick={handleSave}
               className="hover:bg-primary text-white"
             >
               Save
