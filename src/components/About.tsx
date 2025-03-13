@@ -13,6 +13,7 @@ import {
   AlertDialogPortal,
   AlertDialogOverlay,
 } from "@/components/ui/alert-dialog";
+import { Changelog } from "@/components/ui/editor/Changelog";
 
 type AboutDialogProps = {
   open: boolean;
@@ -26,17 +27,17 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ open, onOpenChange }) => {
         <AlertDialogOverlay className="bg-opacity-0" />
         <AlertDialogContent className="flex flex-col items-center justify-center">
           <AlertDialogHeader>
-            <AlertDialogTitle className="items-center justify-center text-center">
+            <AlertDialogTitle className="items-center justify-center text-center text-lg">
               About Museformer
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="flex flex-col items-center justify-center text-center">
-                <div className="m-3">Version 0.1.0</div>
                 <div>
-                  This version of Museformer is in early alpha and may not have
-                  many expected features. Please check back soon for further
+                  This version of Museformer is in alpha and may not have many
+                  expected features. Please check back soon for further
                   development!
                 </div>
+                <Changelog />
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>

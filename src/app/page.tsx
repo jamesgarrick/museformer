@@ -1,38 +1,45 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import YouTube, { YouTubeProps } from "react-youtube";
-import { Input } from "@/components/ui/input";
+import MediaControls from "@/components/MediaControls";
+import Timeline from "@/components/Timeline";
 import { Button } from "@/components/ui/button";
+import { ColorMenu } from "@/components/ui/ColorMenu";
+import { Header } from "@/components/ui/editor/Header";
+import { Input } from "@/components/ui/input";
 import MusicalGroupComponent from "@/components/ui/MusicalGroupComponent";
-import { MusicalGroup } from "@/interfaces/MusicalGroup";
-import { useTheme } from "next-themes";
+import { ShapeMenu } from "@/components/ui/ShapeMenu";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Menubar,
-  MenubarContent,
-  MenubarItem,
-  MenubarMenu,
-  MenubarSeparator,
-  MenubarTrigger,
-  MenubarContextSubmenu,
-  MenubarShortcut,
-} from "@/components/ui/menubar";
-import Timeline from "@/components/Timeline";
-import MediaControls from "@/components/MediaControls";
+import { usePlayerControls } from "@/hooks/usePlayerControls";
+import { MusicalGroup } from "@/interfaces/MusicalGroup";
+import { groupSelectedGroups, splitGroupAtTime } from "@/utils/musicalGroups";
 import { extractVideoId } from "@/utils/youtube";
-import { splitGroupAtTime, groupSelectedGroups } from "@/utils/musicalGroups";
-import { ColorButton } from "@/components/ui/ColorButton";
-import { ShapeMenu } from "@/components/ui/ShapeMenu";
+import { useTheme } from "next-themes";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import YouTube, { YouTubeProps } from "react-youtube";
 
-import AboutDialog from "@/components/About";
-import { exportTimelineToJson } from "@/utils/exportTimeline";
-import SaveProjectDialog from "@/components/SaveProjectDialog";
+import { useProjectState } from "@/hooks/useProjectState";
+
+import { deleteGroup } from "@/utils/groups";
+import { getAllProjects } from "@/utils/projectUtil";
+
+// TO FUTURE SELF
+// MOVE LIGHT, DARK MODE TO SEPARATE STORAGE
+// ZOOM LEVEL SHOULD NOT BE SENT TO DB
+
+// ACTIVE PROJECTS SHOULD NOT BE CONST,
+// SHOULD BE REACTIVE SO IT CAN UPDATE IRL
+
+// MENUBAR HOVER BG DOESNT WORK
+
+// add settings menu
+// separate this file, it is getting way too long
+// add cloudflare k/v storage for saving projects and sharing with others
+// also means adding some import function to save that project to auto add to local storage.
 
 // Extend your submenu enum:
 enum SubMenu {
@@ -41,236 +48,53 @@ enum SubMenu {
   SHAPES = "SHAPES",
 }
 
-type ColorMenuProps = {
-  onColorSelect: (color: string) => void;
-};
-
-function ColorMenu({ onColorSelect }: ColorMenuProps) {
-  const colors = [
-    { color: "#FF0000", label: "Red" },
-    { color: "#00FF00", label: "Green" },
-    { color: "#0000FF", label: "Blue" },
-    { color: "#FFA500", label: "Orange" },
-    { color: "#FFFF00", label: "Yellow" },
-    { color: "#800080", label: "Purple" },
-    { color: "#00FFFF", label: "Cyan" },
-    { color: "#FF00FF", label: "Magenta" },
-    { color: "#008000", label: "Dark Green" },
-    { color: "#FFC0CB", label: "Pink" },
-    { color: "#A52A2A", label: "Brown" },
-    { color: "#808080", label: "Gray" },
-    { color: "#000000", label: "Black" },
-    { color: "#FFFFFF", label: "White" },
-    { color: "#FFD700", label: "Gold" },
-    { color: "#C0C0C0", label: "Silver" },
-    { color: "#4B0082", label: "Indigo" },
-    { color: "#EE82EE", label: "Violet" },
-    { color: "#008080", label: "Teal" },
-    { color: "#800000", label: "Maroon" },
-    { color: "#ADFF2F", label: "Green Yellow" },
-    { color: "#FF4500", label: "Orange Red" },
-    { color: "#DA70D6", label: "Orchid" },
-    { color: "#F0E68C", label: "Khaki" },
-    { color: "#B22222", label: "Firebrick" },
-    { color: "#5F9EA0", label: "Cadet Blue" },
-  ];
-
-  return (
-    <div className="grid grid-cols-5 gap-3">
-      {colors.map((c) => (
-        <ColorButton
-          key={c.label}
-          color={c.color}
-          label={c.label}
-          onClick={() => onColorSelect(c.color)}
-        />
-      ))}
-    </div>
-  );
-}
-
 const Home = () => {
-  const { setTheme } = useTheme();
+  const {
+    projectName,
+    groups,
+    setGroups,
+    activeTheme,
+    videoId,
+    setVideoId,
+    youtubeUrl,
+    setYoutubeUrl,
+    timelineScroll,
+    setTimelineScroll,
+    zoomLevel,
+    setZoomLevel,
+    setActiveTheme,
+    newProject,
+    openProject,
+  } = useProjectState();
 
-  const [activeTheme, setActiveTheme] = useState("system");
-  const [projectName, setProjectName] = useState("Untitled Project");
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const { setTheme } = useTheme();
+  const [projects, setProjects] = useState(getAllProjects());
 
   // Zoom level as a reactive variable; 2 means 200vw, etc.
-  const [zoomLevel, setZoomLevel] = useState(2);
   const containerWidthVW = zoomLevel * 100; // in vw units
 
   // Other state variables...
-  const [timelineScroll, setTimelineScroll] = useState(0);
-  const [youtubeUrl, setYoutubeUrl] = useState("");
-  const [videoId, setVideoId] = useState<string | null>(null);
   const [player, setPlayer] = useState<YT.Player | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [groups, setGroups] = useState<MusicalGroup[]>([]);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [innerWidth, setInnerWidth] = useState(0);
 
-  // Submenu state
   const [activeSubMenu, setActiveSubMenu] = useState<SubMenu>(SubMenu.NONE);
 
-  // header
-  const [showAbout, setShowAbout] = useState(false);
-
-  const [projects, setProjects] = useState(JSON);
-
-  const openProject = (projName: string) => {
-    console.log("[openProject] Attempting to open project:", projName);
-    const projectsStr = localStorage.getItem("museformer_projects");
-    if (projectsStr) {
-      try {
-        const allProjects = JSON.parse(projectsStr);
-        console.log("[openProject] All projects loaded:", allProjects);
-        const project = allProjects[projName];
-        console.log("[openProject] Selected project data:", project);
-        if (project) {
-          setProjectName(project.projectName);
-          if (project.groups) {
-            setGroups(project.groups);
-            console.log("[openProject] Groups loaded:", project.groups);
-          }
-          if (project.videoId) setVideoId(project.videoId);
-          if (project.youtubeUrl) setYoutubeUrl(project.youtubeUrl);
-          if (project.timelineScroll) setTimelineScroll(project.timelineScroll);
-          if (project.zoomLevel) setZoomLevel(project.zoomLevel);
-          if (project.activeTheme) {
-            setActiveTheme(project.activeTheme);
-            setTheme(project.activeTheme);
-          }
-          console.log("[openProject] Project loaded successfully.");
-        } else {
-          console.log("[openProject] No project found with key:", projName);
-        }
-      } catch (error) {
-        console.error("[openProject] Error parsing saved projects:", error);
-      }
-    } else {
-      console.log("[openProject] No projects found in localStorage.");
-    }
-  };
-
-  const newProject = () => {
-    console.log(
-      "[newProject] Starting new project with current projectName:",
-      projectName
-    );
-    if (projectName === "Untitled Project") {
-      const projectsStr = localStorage.getItem("museformer_projects");
-      if (projectsStr) {
-        try {
-          const projects = JSON.parse(projectsStr);
-          if (projects["Untitled Project"]) {
-            console.log(
-              "[newProject] Removing default project 'Untitled Project'."
-            );
-            delete projects["Untitled Project"];
-            localStorage.setItem(
-              "museformer_projects",
-              JSON.stringify(projects)
-            );
-            console.log("[newProject] Projects after deletion:", projects);
-          }
-        } catch (error) {
-          console.error("[newProject] Error removing default project:", error);
-        }
-      }
-    } else {
-      console.log(
-        "[newProject] Current project name is not default. Skipping deletion."
-      );
-    }
-
-    // Reset all key state variables:
-    console.log("[newProject] Resetting state for new project...");
-    setProjectName("Untitled Project");
-    setGroups([]); // Optionally, you may reinitialize with a default parent group.
-    setVideoId(null);
-    setYoutubeUrl("");
-    setTimelineScroll(0);
-    setZoomLevel(2);
-    setActiveTheme("system");
-    setTheme("system");
-    setCurrentTime(0);
-    setDuration(0);
-    console.log("[newProject] New project state has been reset.");
-  };
-
-  // Restore session on mount.
-  // Instead of storing the current project in a separate key,
-  // we load all projects from "museformer_projects" and choose the one with the most recent lastEdited.
   useEffect(() => {
-    const projectsStr = localStorage.getItem("museformer_projects");
-    if (projectsStr) {
-      try {
-        const allProjects = JSON.parse(projectsStr);
-        setProjects(allProjects);
-        let mostRecentProject = null;
-        let mostRecentTimestamp = 0;
-        for (const key in allProjects) {
-          const proj = allProjects[key];
-          if (proj.lastEdited) {
-            const timestamp = new Date(proj.lastEdited).getTime();
-            if (timestamp > mostRecentTimestamp) {
-              mostRecentTimestamp = timestamp;
-              mostRecentProject = proj;
-            }
-          }
-        }
-        if (mostRecentProject) {
-          setProjectName(mostRecentProject.projectName);
-          if (mostRecentProject.groups) setGroups(mostRecentProject.groups);
-          if (mostRecentProject.videoId) setVideoId(mostRecentProject.videoId);
-          if (mostRecentProject.youtubeUrl)
-            setYoutubeUrl(mostRecentProject.youtubeUrl);
-          if (mostRecentProject.timelineScroll)
-            setTimelineScroll(mostRecentProject.timelineScroll);
-          if (mostRecentProject.zoomLevel)
-            setZoomLevel(mostRecentProject.zoomLevel);
-          if (mostRecentProject.activeTheme) {
-            setActiveTheme(mostRecentProject.activeTheme);
-            setTheme(mostRecentProject.activeTheme);
-          }
-        }
-      } catch (error) {
-        console.error("Error parsing saved projects:", error);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Save session: update the current project in "museformer_projects".
-  useEffect(() => {
-    const allProjects = JSON.parse(
-      localStorage.getItem("museformer_projects") || "{}"
-    );
-    const currentProjectData = {
-      groups,
-      videoId,
-      youtubeUrl,
-      timelineScroll,
-      zoomLevel,
-      activeTheme,
-      projectName,
-      lastEdited: new Date().toISOString(),
-    };
-    allProjects[projectName] = currentProjectData;
-    localStorage.setItem("museformer_projects", JSON.stringify(allProjects));
+    setProjects(getAllProjects());
   }, [
+    projectName,
     groups,
     videoId,
     youtubeUrl,
     timelineScroll,
     zoomLevel,
     activeTheme,
-    projectName,
   ]);
 
   // Zoom controls...
@@ -418,59 +242,6 @@ const Home = () => {
     setSelectedGroupIds([]);
   }, [groups, selectedGroupIds]);
 
-  const handleDeleteGroup = () => {
-    if (selectedGroupIds.length !== 1) return;
-    const idToDelete = selectedGroupIds[0];
-    const groupToDelete = groups.find((g) => g.id === idToDelete);
-    if (!groupToDelete) return;
-
-    // Check if this group is a child of any other group.
-    const parentGroup = groups.find(
-      (g) => g.children && g.children.some((child) => child.id === idToDelete)
-    );
-    if (parentGroup) {
-      alert(
-        "This subgroup is part of a parent group. Please delete the parent group first."
-      );
-      return;
-    }
-
-    // Proceed with deletion as before.
-    const layer = groupToDelete.layer ?? 0;
-    const sameLayerGroups = groups.filter(
-      (g) => (g.layer ?? 0) === layer && g.id !== idToDelete
-    );
-    const leftNeighbor = sameLayerGroups
-      .filter((g) => g.endTime <= groupToDelete.startTime)
-      .sort((a, b) => b.endTime - a.endTime)[0];
-    const rightNeighbor = sameLayerGroups
-      .filter((g) => g.startTime >= groupToDelete.endTime)
-      .sort((a, b) => a.startTime - b.startTime)[0];
-    let newGroups = groups.filter((g) => g.id !== idToDelete);
-    if (leftNeighbor) {
-      newGroups = newGroups.map((g) =>
-        g.id === leftNeighbor.id ? { ...g, endTime: groupToDelete.endTime } : g
-      );
-    } else if (rightNeighbor) {
-      newGroups = newGroups.map((g) =>
-        g.id === rightNeighbor.id
-          ? { ...g, startTime: groupToDelete.startTime }
-          : g
-      );
-    }
-    newGroups = newGroups.map((g) => {
-      if (g.children) {
-        return {
-          ...g,
-          children: g.children.filter((child) => child.id !== idToDelete),
-        };
-      }
-      return g;
-    });
-    setGroups(newGroups);
-    setSelectedGroupIds([]);
-  };
-
   const handleBeginning = () => {
     if (player) {
       player.seekTo(0, true);
@@ -512,53 +283,15 @@ const Home = () => {
     }
   };
 
-  useEffect(() => {
-    const keyHandler = (e: KeyboardEvent) => {
-      const active = document.activeElement as HTMLElement;
-      if (
-        active &&
-        (active.tagName === "INPUT" || active.tagName === "TEXTAREA")
-      ) {
-        return;
-      }
-      if (e.key === " " || e.code === "Space") {
-        if (!active || active.tagName.toLowerCase() !== "iframe") {
-          e.preventDefault();
-          if (player) {
-            const state = player.getPlayerState();
-            if (state === 1) {
-              player.pauseVideo();
-            } else {
-              player.playVideo();
-            }
-          }
-        }
-      } else if (e.key === "ArrowLeft") {
-        if (!active || active.tagName.toLowerCase() !== "iframe") {
-          e.preventDefault();
-          if (player) handleRewind();
-        }
-      } else if (e.key === "ArrowRight") {
-        if (!active || active.tagName.toLowerCase() !== "iframe") {
-          e.preventDefault();
-          if (player) handleForward();
-        }
-      } else if (e.key === "s" || e.key === "S") {
-        handleSplitGroup();
-      } else if (e.key === "g" || e.key === "G") {
-        handleGroupSelected();
-      }
-    };
-
-    document.addEventListener("keydown", keyHandler);
-    return () => document.removeEventListener("keydown", keyHandler);
-  }, [
+  // Inside your component:
+  usePlayerControls({
     player,
     handleRewind,
     handleForward,
     handleSplitGroup,
     handleGroupSelected,
-  ]);
+    handlePlay,
+  });
 
   const totalTimelineWidth = zoomLevel * innerWidth;
   const playheadAbsolute = duration
@@ -568,159 +301,21 @@ const Home = () => {
 
   return (
     <div className="h-screen overflow-hidden flex flex-col bg-background">
-      {/* Header */}
-      <header className="bg-background h-8 w-fit flex items-center justify-center">
-        <Menubar className="flex items-center justify-center border-none">
-          <MenubarMenu>
-            <MenubarTrigger className="font-bold text-foreground">
-              Museformer
-            </MenubarTrigger>
-            <MenubarContent>
-              <MenubarItem onClick={() => setShowAbout(true)}>
-                About Museformer
-              </MenubarItem>
-              <MenubarSeparator />
-              <MenubarItem className="disabled">Preferences...</MenubarItem>
-            </MenubarContent>
-          </MenubarMenu>
-          <AboutDialog open={showAbout} onOpenChange={setShowAbout} />
-
-          <MenubarMenu>
-            <MenubarTrigger className="text-foreground">File</MenubarTrigger>
-            <MenubarContent>
-              <MenubarItem
-                className="text-foreground"
-                onSelect={() => newProject()}
-              >
-                New...
-              </MenubarItem>
-              <MenubarItem className="text-foreground disabled">
-                Open...
-              </MenubarItem>
-              <MenubarContextSubmenu trigger="Open Recent">
-                {projects && Object.keys(projects).length > 0 ? (
-                  Object.keys(projects).map((projName) => (
-                    <MenubarItem
-                      key={projName}
-                      className="text-foreground"
-                      onSelect={() => openProject(projName)}
-                    >
-                      {projName}
-                    </MenubarItem>
-                  ))
-                ) : (
-                  <MenubarItem className="text-foreground disabled">
-                    No recent projects
-                  </MenubarItem>
-                )}
-              </MenubarContextSubmenu>
-              <MenubarSeparator />
-              <MenubarItem className="text-foreground disabled">
-                Close
-              </MenubarItem>
-              <MenubarItem
-                onSelect={() => {
-                  if (projectName === "Untitled Project") {
-                    setSaveDialogOpen(true);
-                  }
-                }}
-              >
-                Save
-              </MenubarItem>
-              <MenubarItem className="text-foreground disabled">
-                Save As...
-              </MenubarItem>
-
-              <MenubarContextSubmenu trigger="Export">
-                <MenubarItem
-                  onClick={() => {
-                    const jsonTimeline = exportTimelineToJson(groups);
-                    navigator.clipboard
-                      .writeText(jsonTimeline)
-                      .then(() => {
-                        alert("Timeline JSON copied to clipboard.");
-                      })
-                      .catch(() => {
-                        alert("Failed to copy timeline JSON.");
-                      });
-                  }}
-                >
-                  Share Link
-                </MenubarItem>
-              </MenubarContextSubmenu>
-            </MenubarContent>
-            <SaveProjectDialog
-              open={saveDialogOpen}
-              onOpenChange={setSaveDialogOpen}
-              currentName={projectName}
-              onSave={(newName) => setProjectName(newName)}
-            />
-          </MenubarMenu>
-          <MenubarMenu>
-            <MenubarTrigger className="text-foreground">Edit</MenubarTrigger>
-            <MenubarContent>
-              <MenubarItem className="disabled">
-                Undo <MenubarShortcut className="px-4">ctrl+z</MenubarShortcut>
-              </MenubarItem>
-              <MenubarItem className="disabled">
-                Redo <MenubarShortcut className="px-4">ctrl+r</MenubarShortcut>
-              </MenubarItem>
-              <MenubarSeparator />
-              <MenubarItem className="disabled">Cut</MenubarItem>
-              <MenubarItem className="disabled">Copy</MenubarItem>
-              <MenubarItem className="disabled">Paste</MenubarItem>
-            </MenubarContent>
-          </MenubarMenu>
-          <MenubarMenu>
-            <MenubarTrigger className="text-foreground">Help</MenubarTrigger>
-            <MenubarContent>
-              <MenubarItem className="disabled">Online Handbook</MenubarItem>
-              <MenubarSeparator />
-              <MenubarItem className="disabled">View Logs</MenubarItem>
-            </MenubarContent>
-          </MenubarMenu>
-          <MenubarMenu>
-            <MenubarTrigger className="text-foreground">View</MenubarTrigger>
-            <MenubarContent>
-              <MenubarItem
-                onSelect={() => {
-                  setTheme("light");
-                  setActiveTheme("light");
-                }}
-              >
-                Light
-              </MenubarItem>
-              <MenubarItem
-                onSelect={() => {
-                  setTheme("dark");
-                  setActiveTheme("dark");
-                }}
-              >
-                Dark
-              </MenubarItem>
-              <MenubarItem
-                onSelect={() => {
-                  setTheme("system");
-                  setActiveTheme("system");
-                }}
-              >
-                System
-              </MenubarItem>
-            </MenubarContent>
-          </MenubarMenu>
-        </Menubar>
-
-        <div className="absolute left-1/2 transform -translate-x-1/2">
-          <span className="text-foreground opacity-60 text-sm">
-            {projectName}
-          </span>
-        </div>
-      </header>
+      <Header
+        projectName={projectName}
+        newProject={newProject}
+        openProject={openProject}
+        projects={projects} // Replace with your projects state if you maintain one, for example.
+        saveDialogOpen={false} // You can pass your saveDialogOpen state and setter if needed.
+        setSaveDialogOpen={() => {}}
+        setTheme={(theme: string) => setTheme(theme)}
+        setActiveTheme={setActiveTheme}
+      />
 
       <main className="flex-grow flex flex-col pl-1 gap-1 bg-card overflow-hidden">
         {/* Musical Groups Container - scrollable vertically */}
         <div
-          className="relative shadow overflow-auto no-scrollbar"
+          className="relative overflow-auto no-scrollbar"
           style={{ height: "600px", width: `${containerWidthVW}vw` }}
         >
           {groups.map((group) => (
@@ -808,7 +403,13 @@ const Home = () => {
                   <Button
                     variant="editor"
                     className="w-full flex-1 min-h-0"
-                    onClick={handleDeleteGroup}
+                    onClick={() => {
+                      const updatedGroups = deleteGroup(
+                        groups,
+                        selectedGroupIds[0]
+                      ).updatedGroups;
+                      setGroups(updatedGroups);
+                    }}
                   >
                     Delete Group
                   </Button>
