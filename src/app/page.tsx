@@ -18,13 +18,12 @@ import { usePlayerControls } from "@/hooks/usePlayerControls";
 import { MusicalGroup } from "@/interfaces/MusicalGroup";
 import { groupSelectedGroups, splitGroupAtTime } from "@/utils/musicalGroups";
 import { extractVideoId } from "@/utils/youtube";
-import { useTheme } from "next-themes";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTemporalStore } from "@/hooks/useTemporalStore";
 import YouTube, { YouTubeProps } from "react-youtube";
 
 import { useProjectStore } from "@/hooks/useProjectStore";
 import { deleteGroup } from "@/utils/groups";
-import { getAllProjects } from "@/utils/projectUtil";
 
 // TO FUTURE SELF
 // MOVE LIGHT, DARK MODE TO SEPARATE STORAGE
@@ -49,15 +48,12 @@ enum SubMenu {
 
 const Home = () => {
   const {
-    activeProject,
-    setProjectName,
     setGroups,
     setVideoId,
     setYoutubeUrl,
     setTimelineScroll,
     setZoomLevel,
-    setActiveTheme,
-    saveCurrentProject,
+    activeProject: { zoomLevel, groups, youtubeUrl, timelineScroll, videoId },
   } = useProjectStore();
 
   // Zoom level as a reactive variable; 2 means 200vw, etc.
@@ -85,36 +81,57 @@ const Home = () => {
         (active.tagName === "INPUT" || active.tagName === "TEXTAREA")
       )
         return;
-      if (e.key === "=" || e.key === "+") setZoomLevel((prev) => prev + 0.25);
+      if (e.key === "=" || e.key === "+") setZoomLevel(zoomLevel + 0.25);
       else if (e.key === "-" || e.key === "_")
-        setZoomLevel((prev) => Math.max(0.5, prev - 0.25));
+        setZoomLevel(Math.max(0.5, zoomLevel - 0.25));
     };
     window.addEventListener("keydown", handleZoom);
     return () => window.removeEventListener("keydown", handleZoom);
-  }, []);
+  }, [zoomLevel, setZoomLevel]);
+
+  const temporalStore = useTemporalStore();
+
+  useEffect(() => {
+    const handleUndoRedo = (e: KeyboardEvent) => {
+      const active = document.activeElement as HTMLElement;
+      if (
+        active &&
+        (active.tagName === "INPUT" || active.tagName === "TEXTAREA")
+      ) {
+        return;
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        temporalStore.undo();
+      } else if (e.ctrlKey && e.key.toLowerCase() === "r") {
+        e.preventDefault();
+        temporalStore.redo();
+      }
+    };
+    window.addEventListener("keydown", handleUndoRedo);
+    return () => window.removeEventListener("keydown", handleUndoRedo);
+  }, [temporalStore]);
 
   const handleColorSelect = useCallback(
     (color: string) => {
       if (selectedGroupIds.length === 0) return;
-      setGroups((prevGroups) =>
-        prevGroups.map((group) =>
-          selectedGroupIds.includes(group.id) ? { ...group, color } : group
-        )
+      const newGroups = groups.map((group: MusicalGroup) =>
+        selectedGroupIds.includes(group.id) ? { ...group, color } : group
       );
+      setGroups(newGroups);
     },
-    [selectedGroupIds]
+    [selectedGroupIds, setGroups, groups]
   );
 
   const handleShapeSelect = useCallback(
     (shape: string) => {
       if (selectedGroupIds.length === 0) return;
-      setGroups((prevGroups) =>
-        prevGroups.map((group) =>
-          selectedGroupIds.includes(group.id) ? { ...group, shape } : group
-        )
+      const newGroups = groups.map((group: MusicalGroup) =>
+        selectedGroupIds.includes(group.id) ? { ...group, shape } : group
       );
+      setGroups(newGroups);
     },
-    [selectedGroupIds]
+    [selectedGroupIds, setGroups, groups]
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -195,13 +212,12 @@ const Home = () => {
     position: keyof MusicalGroup["texts"],
     newText: string
   ) => {
-    setGroups((prev) =>
-      prev.map((g) =>
-        g.id === groupId
-          ? { ...g, texts: { ...g.texts, [position]: newText } }
-          : g
-      )
+    const newGroups = groups.map((g: MusicalGroup) =>
+      g.id === groupId
+        ? { ...g, texts: { ...g.texts, [position]: newText } }
+        : g
     );
+    setGroups(newGroups);
   };
 
   const handleSplitGroup = useCallback(() => {

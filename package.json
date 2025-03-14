@@ -26,6 +26,8 @@
     "react-youtube": "^10.1.0",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",
+    "use-sync-external-store": "^1.4.0",
+    "zundo": "^2.3.0",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
