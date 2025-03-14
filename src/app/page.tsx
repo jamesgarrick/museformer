@@ -22,8 +22,7 @@ import { useTheme } from "next-themes";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import YouTube, { YouTubeProps } from "react-youtube";
 
-import { useProjectState } from "@/hooks/useProjectState";
-
+import { useProjectStore } from "@/hooks/useProjectStore";
 import { deleteGroup } from "@/utils/groups";
 import { getAllProjects } from "@/utils/projectUtil";
 
@@ -50,25 +49,16 @@ enum SubMenu {
 
 const Home = () => {
   const {
-    projectName,
-    groups,
+    activeProject,
+    setProjectName,
     setGroups,
-    activeTheme,
-    videoId,
     setVideoId,
-    youtubeUrl,
     setYoutubeUrl,
-    timelineScroll,
     setTimelineScroll,
-    zoomLevel,
     setZoomLevel,
     setActiveTheme,
-    newProject,
-    openProject,
-  } = useProjectState();
-
-  const { setTheme } = useTheme();
-  const [projects, setProjects] = useState(getAllProjects());
+    saveCurrentProject,
+  } = useProjectStore();
 
   // Zoom level as a reactive variable; 2 means 200vw, etc.
   const containerWidthVW = zoomLevel * 100; // in vw units
@@ -84,18 +74,6 @@ const Home = () => {
   const [innerWidth, setInnerWidth] = useState(0);
 
   const [activeSubMenu, setActiveSubMenu] = useState<SubMenu>(SubMenu.NONE);
-
-  useEffect(() => {
-    setProjects(getAllProjects());
-  }, [
-    projectName,
-    groups,
-    videoId,
-    youtubeUrl,
-    timelineScroll,
-    zoomLevel,
-    activeTheme,
-  ]);
 
   // Zoom controls...
   useEffect(() => {
@@ -302,14 +280,8 @@ const Home = () => {
   return (
     <div className="h-screen overflow-hidden flex flex-col bg-background">
       <Header
-        projectName={projectName}
-        newProject={newProject}
-        openProject={openProject}
-        projects={projects} // Replace with your projects state if you maintain one, for example.
         saveDialogOpen={false} // You can pass your saveDialogOpen state and setter if needed.
         setSaveDialogOpen={() => {}}
-        setTheme={(theme: string) => setTheme(theme)}
-        setActiveTheme={setActiveTheme}
       />
 
       <main className="flex-grow flex flex-col pl-1 gap-1 bg-card overflow-hidden">

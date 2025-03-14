@@ -16,39 +16,28 @@ import {
 import AboutDialog from "@/components/About";
 import SaveProjectDialog from "@/components/SaveProjectDialog";
 import { exportTimelineToJson } from "@/utils/exportTimeline";
-import { useProjectState } from "@/hooks/useProjectState";
-import { getAllProjects } from "@/utils/projectUtil";
-import { ProjectData } from "@/utils/projectUtil";
+import { useProjectStore } from "@/hooks/useProjectStore";
+import { useTheme } from "next-themes";
 
 type HeaderProps = {
-  projectName: string;
-  newProject: () => void;
-  openProject: (projName: string) => void;
-  projects: Record<string, ProjectData>; // your projects object from localStorage
   saveDialogOpen: boolean;
   setSaveDialogOpen: (open: boolean) => void;
-  setTheme: (theme: string) => void;
-  setActiveTheme: (theme: string) => void;
 };
 
 export const Header: React.FC<HeaderProps> = ({
-  projectName,
-  newProject,
-  openProject,
   saveDialogOpen,
   setSaveDialogOpen,
-  setTheme,
-  setActiveTheme,
 }) => {
   const {
+    newProject,
+    openProject,
     setProjectName,
-    groups,
-    // ...other state and functions
-  } = useProjectState();
+    activeProject: { projectName, groups },
+    projects,
+  } = useProjectStore();
 
   const [showAbout, setShowAbout] = useState(false);
-
-  const projects = getAllProjects();
+  const { setTheme } = useTheme();
 
   return (
     <header className="bg-background h-8 w-full flex items-center relative">
@@ -166,7 +155,6 @@ export const Header: React.FC<HeaderProps> = ({
             <MenubarItem
               onSelect={() => {
                 setTheme("light");
-                setActiveTheme("light");
               }}
             >
               Light
@@ -174,7 +162,6 @@ export const Header: React.FC<HeaderProps> = ({
             <MenubarItem
               onSelect={() => {
                 setTheme("dark");
-                setActiveTheme("dark");
               }}
             >
               Dark
@@ -182,7 +169,6 @@ export const Header: React.FC<HeaderProps> = ({
             <MenubarItem
               onSelect={() => {
                 setTheme("system");
-                setActiveTheme("system");
               }}
             >
               System
