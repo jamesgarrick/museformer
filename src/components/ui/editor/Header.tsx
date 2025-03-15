@@ -19,24 +19,17 @@ import { exportTimelineToJson } from "@/utils/exportTimeline";
 import { useProjectStore } from "@/hooks/useProjectStore";
 import { useTheme } from "next-themes";
 
-type HeaderProps = {
-  saveDialogOpen: boolean;
-  setSaveDialogOpen: (open: boolean) => void;
-};
-
-export const Header: React.FC<HeaderProps> = ({
-  saveDialogOpen,
-  setSaveDialogOpen,
-}) => {
+export const Header: React.FC = () => {
   const {
     newProject,
     openProject,
     setProjectName,
-    activeProject: { projectName, groups },
+    activeProject: { projectName: currentName, groups },
     projects,
   } = useProjectStore();
 
   const [showAbout, setShowAbout] = useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const { setTheme } = useTheme();
 
   return (
@@ -91,9 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
             </MenubarItem>
             <MenubarItem
               onSelect={() => {
-                if (projectName === "Untitled Project") {
-                  setSaveDialogOpen(true);
-                }
+                setSaveDialogOpen(true);
               }}
             >
               Save
@@ -119,12 +110,6 @@ export const Header: React.FC<HeaderProps> = ({
               </MenubarItem>
             </MenubarContextSubmenu>
           </MenubarContent>
-          <SaveProjectDialog
-            open={saveDialogOpen}
-            onOpenChange={setSaveDialogOpen}
-            currentName={projectName}
-            onSave={(newName) => setProjectName(newName)}
-          />
         </MenubarMenu>
         <MenubarMenu>
           <MenubarTrigger className="text-foreground">Edit</MenubarTrigger>
@@ -176,9 +161,15 @@ export const Header: React.FC<HeaderProps> = ({
           </MenubarContent>
         </MenubarMenu>
       </Menubar>
+      <SaveProjectDialog
+        open={saveDialogOpen}
+        onOpenChange={setSaveDialogOpen}
+        currentName={currentName}
+        onSave={setProjectName}
+      />
       <div className="absolute left-1/2 transform -translate-x-1/2">
         <span className="text-foreground opacity-60 text-sm">
-          {projectName}
+          {currentName}
         </span>
       </div>
     </header>
